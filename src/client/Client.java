@@ -2,13 +2,18 @@ package client;
 
 import java.util.*;
 import java.io.*;
+import java.net.Socket;
 
 
-public class Client extends WSClient {
+public class Client {
+	
+	Socket clientSocket;
+	DataOutputStream outToServer;
 
     public Client(String serviceName, String serviceHost, int servicePort) 
     throws Exception {
-        super(serviceName, serviceHost, servicePort);
+        clientSocket = new Socket(serviceHost, servicePort);
+        outToServer = new DataOutputStream(clientSocket.getOutputStream());
     }
 
     public static void main(String[] args) {
@@ -81,7 +86,7 @@ public class Client extends WSClient {
                 else  //wrong use of help command
                     System.out.println("Improper use of help command. Type help or help, <commandname>");
                 break;
-                
+                /*
             case 2:  //new flight
                 if (arguments.size() != 5) {
                     wrongNumber();
@@ -108,7 +113,7 @@ public class Client extends WSClient {
                     System.out.println(e.getMessage());
                     e.printStackTrace();
                 }
-                break;
+                break;*/
                 
             case 3:  //new car
                 if (arguments.size() != 5) {
@@ -124,11 +129,13 @@ public class Client extends WSClient {
                     location = getString(arguments.elementAt(2));
                     numCars = getInt(arguments.elementAt(3));
                     price = getInt(arguments.elementAt(4));
-
-                    if (proxy.addCars(id, location, numCars, price))
-                        System.out.println("cars added");
-                    else
-                        System.out.println("cars could not be added");
+                    
+                    try {
+                    	outToServer.writeBytes(command + "\n");
+                    	System.out.println("cars added");
+                    } catch (IOException ex) {
+                    	System.out.println("cars could not be added");
+                    }                        
                 }
                 catch(Exception e) {
                     System.out.println("EXCEPTION: ");
@@ -136,7 +143,7 @@ public class Client extends WSClient {
                     e.printStackTrace();
                 }
                 break;
-                
+                /*
             case 4:  //new room
                 if (arguments.size() != 5) {
                     wrongNumber();
@@ -557,7 +564,7 @@ public class Client extends WSClient {
                     System.out.println(e.getMessage());
                     e.printStackTrace();
                 }
-                break;
+                break;*/
                 
             default:
                 System.out.println("The interface does not support this command.");
