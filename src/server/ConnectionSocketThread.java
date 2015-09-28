@@ -1,6 +1,7 @@
 package server;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
@@ -24,7 +25,7 @@ public class ConnectionSocketThread extends Thread{
 		try{
 	        System.out.println("Connection accepted!");
 	        BufferedReader inFromClient = new BufferedReader(new InputStreamReader(aConnectionSocket.getInputStream()));
-	        //DataOutputStream outToClient = new DataOutputStream(connectionSocket.getOutputStream());
+	        DataOutputStream outToClient = new DataOutputStream(aConnectionSocket.getOutputStream());
 	        String clientSentence;
 	        System.out.println("Waiting for input");
 	        while((clientSentence = inFromClient.readLine()) != null){
@@ -35,7 +36,7 @@ public class ConnectionSocketThread extends Thread{
 			        case "NEWCAR":
 			        	System.out.println("NEWCAR received");
 			        	aResourceManager.addCars(Integer.parseInt(request[1]), request[2], Integer.parseInt(request[3]), Integer.parseInt(request[4]));
-			        	System.out.println("car added : "+ request[0]+","+request[1]+","+request[2]+","+request[3]+","+request[4]);
+			        	outToClient.writeBytes("car added : "+ request[0]+","+request[1]+","+request[2]+","+request[3]+","+request[4]);
 			        	break;
 		        }
 		        System.out.println("Waiting for input");
