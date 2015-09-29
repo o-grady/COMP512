@@ -1,14 +1,6 @@
 package server.ws;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.*;
-
-import org.apache.catalina.LifecycleException;
-import org.apache.catalina.startup.Tomcat;
 
 import server.ConnectionSocketThread;
 import server.ResourceManagerImpl;
@@ -21,19 +13,17 @@ public class Main {
     
     	ResourceManager rm = new ResourceManagerImpl();
     	
-        if (args.length != 3) {
+        if (args.length != 1) {
             System.out.println(
-                "Usage: java Main <service-name> <service-port> <deploy-dir>");
+                "Usage: java Main <service-port>");
             System.exit(-1);
         }
         
-        String serviceName = args[0];
-        int port = Integer.parseInt(args[1]);
-        String deployDir = args[2];
+        int port = Integer.parseInt(args[0]);
         
         ServerSocket welcomeSocket = new ServerSocket(port);
         while(true){
-	    	System.out.println("Waiting on connection...");
+	    	System.out.println("Listening for connections on port " + args[0]);
 	        Socket connectionSocket = welcomeSocket.accept();
 	        //After connection is accepted start a new thread to handle
 	        (new ConnectionSocketThread(connectionSocket, rm)).start();

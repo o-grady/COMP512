@@ -9,7 +9,6 @@ public class RequestDescriptor implements Serializable {
 	
     public int id;
     public int flightNumber;
-    public int flightPrice;
     public int numSeats;
     public boolean room;
     public boolean car;

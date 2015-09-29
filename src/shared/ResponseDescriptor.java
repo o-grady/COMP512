@@ -11,4 +11,8 @@ public class ResponseDescriptor implements Serializable {
 		this.message = response;
 	}
 
+	public ResponseDescriptor() {
+		// TODO Auto-generated constructor stub
+	}
+
 }

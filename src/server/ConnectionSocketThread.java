@@ -1,144 +1,182 @@
 package server;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.ServerSocket;
+import java.io.ObjectOutputStream;
+import java.io.ObjectInputStream;
 import java.net.Socket;
 
 import server.ws.ResourceManager;
+import shared.RequestDescriptor;
+import shared.ResponseDescriptor;
 /**
  * Started when a new client connects and handles their requests
  * @author grady_000
  *
  */
 public class ConnectionSocketThread extends Thread{
-	private Socket aConnectionSocket;
-	private ResourceManager aResourceManager;
+	
+	private Socket connectionSocket;
+	private ResourceManager resourceManager;
+	private ObjectInputStream inFromClient;
+	private ObjectOutputStream outToClient;
+	
 	public ConnectionSocketThread(Socket connectionSocket, ResourceManager rm){
 		super();
-		this.aConnectionSocket = connectionSocket;
-		this.aResourceManager = rm;
+		this.connectionSocket = connectionSocket;
+		this.resourceManager = rm;
 	}
+	
 	public void run(){
 		try{
 	        System.out.println("Connection accepted!");
-	        BufferedReader inFromClient = new BufferedReader(new InputStreamReader(aConnectionSocket.getInputStream()));
-	        DataOutputStream outToClient = new DataOutputStream(aConnectionSocket.getOutputStream());
-	        String clientSentence;
+	        inFromClient = new ObjectInputStream(connectionSocket.getInputStream());
+	        outToClient = new ObjectOutputStream(connectionSocket.getOutputStream());
+	        
+	        Object read;
+	        
 	        System.out.println("Waiting for input");
-	        while((clientSentence = inFromClient.readLine()) != null){
-		        String[] request = clientSentence.split(",");
-		        System.out.println(clientSentence);
+	        
+	        while((read = inFromClient.readObject()) != null){
+	        	RequestDescriptor request;
+	        	ResponseDescriptor response = new ResponseDescriptor();
+	        	
+	        	if (read.getClass() == RequestDescriptor.class) {
+	        		request = (RequestDescriptor) read;
+	        	} else {
+	        		System.out.println("Expected an object of type " + RequestDescriptor.class.getName() + " but received an object of type " + read.getClass().getName());
+	        		continue;
+	        	}
+	        	
+	        	String responseMessage = null;
 		        
-		        switch(request[0].toUpperCase()) {
-			        case "NEWFLIGHT":
+		        switch(request.requestType) {
+			        case NEWFLIGHT:
 			        	System.out.println("NEWFLIGHT received");
-			        	aResourceManager.addFlight(Integer.parseInt(request[1]), Integer.parseInt(request[2]), Integer.parseInt(request[3]), Integer.parseInt(request[4]));
-			        	outToClient.writeBytes("NEWFLIGHT received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.addFlight(request.id, request.flightNumber, request.numSeats, request.price)
+			        			);
 			        	break;
-			        case "NEWCAR":
+			        case NEWCAR:
 			        	System.out.println("NEWCAR received");
-			        	aResourceManager.addCars(Integer.parseInt(request[1]), request[2], Integer.parseInt(request[3]), Integer.parseInt(request[4]));
-			        	outToClient.writeBytes("NEWCAR received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.addCars(request.id, request.location, request.numCars, request.price)
+			        			);
 			        	break;
-			        case "NEWROOM":
+			        case NEWROOM:
 			        	System.out.println("NEWROOM received");
-			        	aResourceManager.addRooms(Integer.parseInt(request[1]), request[2], Integer.parseInt(request[3]), Integer.parseInt(request[4]));
-			        	outToClient.writeBytes("NEWROOM received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.addRooms(request.id, request.location, request.numRooms, request.price)
+			        			);
 			        	break;
-			        case "NEWCUSTOMER":
+			        case NEWCUSTOMER:
 			        	System.out.println("NEWCUSTOMER received");
-			        	aResourceManager.newCustomer(Integer.parseInt(request[1]));
-			        	outToClient.writeBytes("NEWCUSTOMER received");
+			        	responseMessage = Integer.toString(
+			        			resourceManager.newCustomer(request.id)
+			        			);
 			        	break;
-			        case "NEWCUSTOMERID":
+			        case NEWCUSTOMERID:
 			        	System.out.println("NEWCUSTOMERID received");
-			        	aResourceManager.newCustomerId(Integer.parseInt(request[1]), Integer.parseInt(request[2]));
-			        	outToClient.writeBytes("NEWCUSTOMERID received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.newCustomerId(request.id, request.customerNumber)
+			        			);
 			        	break;
-			        case "DELETEFLIGHT":
+			        case DELETEFLIGHT:
 			        	System.out.println("DELETEFLIGHT received");
-			        	aResourceManager.deleteFlight(Integer.parseInt(request[1]), Integer.parseInt(request[2]));
-			        	outToClient.writeBytes("DELETEFLIGHT received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.deleteFlight(request.id, request.flightNumber)
+			        			);
 			        	break;
-			        case "DELETECAR":
+			        case DELETECAR:
 			        	System.out.println("DELETECAR received");
-			        	aResourceManager.deleteCars(Integer.parseInt(request[1]), request[2]);
-			        	outToClient.writeBytes("DELETECAR received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.deleteCars(request.id, request.location)
+			        			);
 			        	break;
-			        case "DELETEROOM":
+			        case DELETEROOM:
 			        	System.out.println("DELETEROOM received");
-			        	aResourceManager.deleteRooms(Integer.parseInt(request[1]), request[2]);
-			        	outToClient.writeBytes("DELETEROOM received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.deleteRooms(request.id, request.location)
+			        			);
 			        	break;
-			        case "DELETECUSTOMER":
+			        case DELETECUSTOMER:
 			        	System.out.println("DELETECUSTOMER received");
-			        	aResourceManager.deleteCustomer(Integer.parseInt(request[1]), Integer.parseInt(request[2]));
-			        	outToClient.writeBytes("DELETECUSTOMER received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.deleteCustomer(request.id, request.customerNumber)
+			        			);
 			        	break;
-			        case "QUERYFLIGHT":
+			        case QUERYFLIGHT:
 			        	System.out.println("QUERYFLIGHT received");
-			        	aResourceManager.queryFlight(Integer.parseInt(request[1]), Integer.parseInt(request[2]));
-			        	outToClient.writeBytes("QUERYFLIGHT received");
+			        	responseMessage = Integer.toString(
+			        			resourceManager.queryFlight(request.id, request.flightNumber)
+			        			);
 			        	break;
-			        case "QUERYCAR":
+			        case QUERYCAR:
 			        	System.out.println("QUERYCAR received");
-			        	aResourceManager.queryCars(Integer.parseInt(request[1]), request[2]);
-			        	outToClient.writeBytes("QUERYCAR received");
+			        	responseMessage = Integer.toString(
+			        			resourceManager.queryCars(request.id, request.location)
+			        			);
 			        	break;
-			        case "QUERYROOM":
+			        case QUERYROOM:
 			        	System.out.println("QUERYROOM received");
-			        	aResourceManager.queryRooms(Integer.parseInt(request[1]), request[2]);
-			        	outToClient.writeBytes("QUERYROOM received");
+			        	responseMessage = Integer.toString(
+			        			resourceManager.queryRooms(request.id, request.location)
+			        			);
 			        	break;
-			        case "QUERYCUSTOMER":
+			        case QUERYCUSTOMER:
 			        	System.out.println("QUERYCUSTOMER received");
 			        	//Pretty sure its this method
-			        	aResourceManager.queryCustomerInfo(Integer.parseInt(request[1]), Integer.parseInt(request[2]));
-			        	outToClient.writeBytes("QUERYCUSTOMER received");
+			        	responseMessage = resourceManager.queryCustomerInfo(request.id, request.customerNumber);
 			        	break;
-			        case "QUERYFLIGHTPRICE":
+			        case QUERYFLIGHTPRICE:
 			        	System.out.println("QUERYFLIGHTPRICE received");
-			        	aResourceManager.queryFlightPrice(Integer.parseInt(request[1]), Integer.parseInt(request[2]));
-			        	outToClient.writeBytes("QUERYFLIGHTPRICE received");
+			        	responseMessage = Integer.toString(
+			        			resourceManager.queryFlightPrice(request.id, request.flightNumber)
+			        			);
 			        	break;
-			        case "QUERYCARPRICE":
+			        case QUERYCARPRICE:
 			        	System.out.println("QUERYCARPRICE received");
-			        	aResourceManager.queryCarsPrice(Integer.parseInt(request[1]), request[2]);
-			        	outToClient.writeBytes("QUERYCARPRICE received");
+			        	responseMessage = Integer.toString(
+			        			resourceManager.queryCarsPrice(request.id, request.location)
+			        			);
 			        	break;
-			        case "QUERYROOMPRICE":
+			        case QUERYROOMPRICE:
 			        	System.out.println("QUERYROOMPRICE received");
-			        	aResourceManager.queryRoomsPrice(Integer.parseInt(request[1]), request[2]);
-			        	outToClient.writeBytes("QUERYROOMPRICE received");
+			        	responseMessage = Integer.toString(
+			        			resourceManager.queryRoomsPrice(request.id, request.location)
+			        			);
 			        	break;
-			        case "RESERVEFLIGHT":
+			        case RESERVEFLIGHT:
 			        	System.out.println("RESERVEFLIGHT received");
-			        	aResourceManager.reserveFlight(Integer.parseInt(request[1]), Integer.parseInt(request[2]), Integer.parseInt(request[3]));
-			        	outToClient.writeBytes("RESERVEFLIGHT received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.reserveFlight(request.id, request.customerNumber, request.flightNumber)
+			        			);
 			        	break;
-			        case "RESERVECAR":
+			        case RESERVECAR:
 			        	System.out.println("RESERVECAR received");
-			        	aResourceManager.reserveCar(Integer.parseInt(request[1]), Integer.parseInt(request[2]), request[3]);
-			        	outToClient.writeBytes("RESERVECAR received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.reserveCar(request.id, request.customerNumber, request.location)
+			        			);
 			        	break;
-			        case "RESERVEROOM":
+			        case RESERVEROOM:
 			        	System.out.println("RESERVEROOM received");
-			        	aResourceManager.reserveRoom(Integer.parseInt(request[1]), Integer.parseInt(request[2]), request[3]);
-			        	outToClient.writeBytes("RESERVEROOM received");
+			        	responseMessage = Boolean.toString(
+			        			resourceManager.reserveRoom(request.id, request.customerNumber, request.location)
+			        			);
 			        	break;
-			        case "ITINERARY":
+			        case ITINERARY:
 			        	System.out.println("ITINERARY received");
 			        	//This one doesn't work. Fix when messages are passed as JSON
-			        	//aResourceManager.reserveItinerary(Integer.parseInt(request[1]), request[2], Integer.parseInt(request[3]), Integer.parseInt(request[4]));
-			        	outToClient.writeBytes("ITINERARY received");
+			        	//aResourceManager.reserveItinerary(request.id, request[2], Integer.parseInt(request[3]), Integer.parseInt(request[4]));
+			        	//outToClient.writeBytes("ITINERARY received");
 			        	break;
 		        }
+		        
+		        response = new ResponseDescriptor(responseMessage);
+		        
+		        outToClient.writeObject(response);
+		        
 		        System.out.println("Waiting for input");
 	        } 
-	        aConnectionSocket.close();
+	        connectionSocket.close();
 		}catch(Exception e){
 			System.out.println("Exception caught in ConnectionSocketThread");
 			e.printStackTrace();

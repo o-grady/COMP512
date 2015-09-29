@@ -24,7 +24,7 @@ public class Client {
     public static void main(String[] args) {
         try {
         
-            if (args.length != 3) {
+            if (args.length != 2) {
                 System.out.println("Usage: MyClient <service-host> <service-port>");
                 System.exit(-1);
             }
@@ -168,7 +168,7 @@ public class Client {
             rd.id = getInt(arguments[1]);
             rd.flightNumber = getInt(arguments[2]);
             rd.numSeats = getInt(arguments[3]);
-            rd.flightPrice = getInt(arguments[4]);
+            rd.price = getInt(arguments[4]);
 			break;
 		case NEWROOM:
             System.out.println("Adding a new room using id: " + arguments[1]);
