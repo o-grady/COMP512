@@ -1,9 +1,6 @@
-package server.ws;
+package server;
 
 import java.net.*;
-
-import server.ConnectionSocketThread;
-import server.ResourceManagerImpl;
 
 
 public class Main {

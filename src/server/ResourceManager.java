@@ -14,7 +14,7 @@
  * has succeeded.
  */
 
-package server.ws;
+package server;
 
 import java.util.*;
 
