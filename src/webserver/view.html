@@ -1,12 +1,84 @@
 <!DOCTYPE html>
 <html>
-<head>
-<title>COMP 512</title>
-</head>
-<body>
-<form action="/request" method="post">
-  <input name="Request" value="newcar,1,1,1,1">
-  <button>Send</button>
-</form>
-</body>
+  <head>
+	<title>COMP 512</title>
+	<style>
+	.formDiv{
+	display:none;
+	}	
+	</style>
+	<script src="jquery-2.1.4.min.js"></script>
+	<script src="view.js"></script>
+  </head>
+  <body>
+	<form action="/request" method="post" style="display:block">
+		<div>
+			<select name="method" id="method"> 
+				<option value="newflight">newflight</option>
+				<option value="newcar">newcar</option>
+				<option value="newroom">newroom</option>
+				<option value="newcustomer">newcustomer</option>
+				<option value="newcustomerid">newcustomerid</option>
+				<option value="deleteflight">deleteflight</option>
+				<option value="deletecar">deletecar</option>
+				<option value="deleteroom">deleteroom</option>
+				<option value="deletecustomer">deletecustomer</option>
+				<option value="queryflight">queryflight</option>
+				<option value="querycar">querycar</option>
+				<option value="queryroom">queryroom</option>
+				<option value="querycustomer">querycustomer</option>
+				<option value="queryflightprice">queryflightprice</option>
+				<option value="querycarprice">querycarprice</option>
+				<option value="queryroomprice">queryroomprice</option>
+				<option value="reserveflight">reserveflight</option>
+				<option value="reservecar">reservecar</option>
+				<option value="reserveroom">reserveroom</option>
+				<option value="itinerary">itinerary</option>
+			</select>
+		</div>
+		<div class="formDiv">
+			ID:
+			<input type="number" name="id" value="id">
+		</div>
+		<div class="formDiv" id="flightNumber">
+			flightNumber:
+			<input type="number" name="flightNumber"> 
+		</div>
+		<div class="formDiv" id="numSeats">
+			numSeats:
+			<input type="number" name="numSeats"> 
+		</div>
+		<div class="formDiv" id="room">
+			Room?:
+			<input type="checkbox" name="room" value="room">
+		</div>
+		<div class="formDiv" id="car">
+			Car?:
+			<input type="checkbox" name="car" value="car">
+		</div>
+		<div class="formDiv" id="price">
+			Price:
+			<input type="number" name="price"> 
+		</div>
+		<div class="formDiv" id="numRooms">
+			numRooms:
+			<input type="number" name="numRooms"> 
+		</div>
+		<div class="formDiv" id="numCars">
+			numCars:
+			<input type="number" name="numCars"> 
+		</div>
+		<div class="formDiv" id="location">
+			Location:
+			<input type="text" name="location"> 
+		</div>
+		<div class="formDiv" id="customerNumber">
+			customerNumber:
+			<input type="number" name="customerNumber"> 
+		</div>
+		<div class="formDiv">
+			<button>Send</button>
+		</div>
+	</form>
+  </body>
 </html>
