@@ -4,13 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringWriter;
 import java.net.InetSocketAddress;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;

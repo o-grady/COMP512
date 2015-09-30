@@ -1,12 +1,12 @@
 package server;
 
+import java.io.IOException;
 import java.net.*;
 
 
 public class Main {
 
-    public static void main(String[] args) 
-    throws Exception {
+    public static void main(String[] args) throws IOException {
     
     	ResourceManager rm = new ResourceManagerImpl();
     	
@@ -17,13 +17,21 @@ public class Main {
         }
         
         int port = Integer.parseInt(args[0]);
+        ServerSocket welcomeSocket = null;
         
-        ServerSocket welcomeSocket = new ServerSocket(port);
-        while(true){
-	    	System.out.println("Listening for connections on port " + args[0]);
-	        Socket connectionSocket = welcomeSocket.accept();
-	        //After connection is accepted start a new thread to handle
-	        (new ConnectionSocketThread(connectionSocket, rm)).start();
+        try {
+        	welcomeSocket = new ServerSocket(port);
+	        while(true){
+		    	System.out.println("Listening for connections on port " + args[0]);
+		        Socket connectionSocket = welcomeSocket.accept();
+		        //After connection is accepted start a new thread to handle
+		        (new ConnectionSocketThread(connectionSocket, rm)).start();
+	        }
+        }
+        finally {
+        	if (welcomeSocket != null) {
+        		welcomeSocket.close();
+        	}
         }
     }
 }

@@ -32,9 +32,9 @@ public class ConnectionSocketThread extends Thread{
 	        
 	        Object read;
 	        
-	        System.out.println("Waiting for input");
-	        
 	        while((read = inFromClient.readObject()) != null){
+	        	System.out.println("Waiting for input");
+	        	
 	        	RequestDescriptor request;
 	        	ResponseDescriptor response = new ResponseDescriptor();
 	        	
@@ -172,8 +172,6 @@ public class ConnectionSocketThread extends Thread{
 		        response = new ResponseDescriptor(responseMessage);
 		        
 		        outToClient.writeObject(response);
-		        
-		        System.out.println("Waiting for input");
 	        } 
 	        connectionSocket.close();
 		}catch(Exception e){
