@@ -1,5 +1,7 @@
 package middleware;
 
+import server.RMRequestHandler;
+import server.ResourceManagerImpl;
 import shared.RequestDescriptor;
 import shared.RequestType;
 import shared.ResponseDescriptor;
@@ -7,9 +9,11 @@ import shared.ResponseDescriptor;
 public class RequestHandler {
 
 	private ConnectionManager cm;
+	private RMRequestHandler rh;
 	
 	public RequestHandler(ConnectionManager cm) {
 		this.cm = cm;
+		this.rh = new RMRequestHandler(new ResourceManagerImpl());
 	}
 	
 	public ResponseDescriptor handleRequest(RequestDescriptor request) {
@@ -51,14 +55,17 @@ public class RequestHandler {
 				break;
 			}
 			
-			if (cm.modeIsConnected(mode)) {
+			if (mode == ServerMode.CUSTOMER) {
+				return rh.handleRequest(request);
+			}
+			else if (cm.modeIsConnected(mode)) {
 				return cm.getConnection(mode).sendRequest(request);
 			} else {
 				throw new Exception("Server not connected");
 			}
 		}
 		catch(Exception ex) {
-			return new ResponseDescriptor("Error: " + ex.getMessage());
+			return new ResponseDescriptor("Error: " + ex.getClass().getName() + ", " + ex.getMessage());
 		}
 	}
 	
