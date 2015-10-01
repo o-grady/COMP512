@@ -8,6 +8,7 @@ public class Main {
 	private WelcomeManager wm;
 	private ConnectionManager cm;
 	private RequestHandler rh;
+	private static Scanner scanner;
 
     public Main(int port) {
     	cm = new ConnectionManager();
@@ -17,31 +18,34 @@ public class Main {
 	}
 
 	public static void main(String[] args) {
-    	Scanner scanIn = new Scanner(System.in);
+		scanner = new Scanner(System.in);
     	String input;
     	
     	System.out.println("Enter the port to listen on : ");
-        input = scanIn.nextLine();
+        input = scanner.nextLine();
         int port = Integer.parseInt(input);
-        scanIn.close();
         
         Main client = new Main(port);
         client.run();
+        
+        scanner.close();
     }
-
 
     public void run() {
         System.out.println("Middleware Interface");
-
+        
         while (true) {
-        	Scanner scanIn = new Scanner(System.in);
-        	
         	System.out.println("Options:\n"
         			+ "1. Add server\n"
         			+ "2. Remove server\n"
+        			+ "3. Quit\n"
         			+ "Please make a selection by entering a number:");
             
-        	String operation = scanIn.nextLine();
+        	String operation = scanner.nextLine();
+        	
+        	if (operation.equalsIgnoreCase("3")) {
+        		break;
+        	}
         	
         	System.out.println("Server mode:\n"
         			+ "1. Car\n"
@@ -49,7 +53,7 @@ public class Main {
         			+ "3. Room\n"
         			+ "Please make a selection by entering a number:");
         	
-        	String serverMode = scanIn.nextLine();
+        	String serverMode = scanner.nextLine();
         	
         	ServerMode mode = null;
         	switch(serverMode) {
@@ -72,9 +76,9 @@ public class Main {
         	switch(operation) {
         	case "1":
         		System.out.println("Enter the hostname: ");
-        		String hostname = scanIn.nextLine();
+        		String hostname = scanner.nextLine();
         		System.out.println("Enter the port number: ");
-        		int port = Integer.parseInt(scanIn.nextLine());
+        		int port = Integer.parseInt(scanner.nextLine());
         		if (cm.addServer(mode, hostname, port)) {
         			System.out.println("Success!");
         		} else {
@@ -86,8 +90,8 @@ public class Main {
         		System.out.println("Server removed.");
         		break;
         	}
-        	
-        	scanIn.close();
     	}
+        
+        wm.stopThread();
     }
 }

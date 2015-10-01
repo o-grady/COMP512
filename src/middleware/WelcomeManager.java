@@ -8,29 +8,43 @@ public class WelcomeManager extends Thread {
 	
 	private int port;
 	private RequestHandler requestHandler;
+	private ServerSocket welcomeSocket;
 	
 	public WelcomeManager(RequestHandler requestHandler, int port) {
 		this.port = port;
 		this.requestHandler = requestHandler;
+		this.welcomeSocket = null;
 	}
 	
 	public void startThread() {
 		this.start();
 	}
+	
+	public void stopThread() {
+		if (!welcomeSocket.isClosed()) {
+			try {
+				welcomeSocket.close();
+			} catch (Exception e) {
+				//e.printStackTrace();
+			}
+			finally {
+				this.interrupt();
+			}
+		}
+		
+	}
 
 	public void run() {
-        ServerSocket welcomeSocket = null;
-        
         try {
         	welcomeSocket = new ServerSocket(port);
 	        while(true){
-		    	System.out.println("Listening for connections on port " + port);
+		    	//System.out.println("Listening for connections on port " + port);
 		        Socket connectionSocket = welcomeSocket.accept();
 		        //After connection is accepted start a new thread to handle
 		        (new ClientConnectionThread(connectionSocket, requestHandler)).start();
 	        }
-        } catch (IOException e) {
-			e.printStackTrace();
+        } catch (Exception e) {
+			//e.printStackTrace();
 		}
         finally {
         	if (welcomeSocket != null) {
