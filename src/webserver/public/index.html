@@ -3,7 +3,7 @@
   <head>
 	<title>COMP 512</title>
 	<link rel="stylesheet" type="text/css" href="index.css">
-	<script src="jquery-2.1.4.min.js"></script>
+	<!--<script src="jquery-2.1.4.min.js"></script>-->
 	<script src="index.js"></script>
   </head>
   <body>
@@ -32,47 +32,49 @@
 				<option value="itinerary">itinerary</option>
 			</select>
 		</div>
-		<div class="formDiv">
-			ID:
-			<input type="number" name="id" value="id">
+		<div id="parameters">
+			<div class="formDiv" id="id">
+				<input type="number" name="id" value="id">
+				ID:
+			</div>
+			<div class="formDiv" id="flightNumber">
+				<input type="number" name="flightNumber"> 
+				flightNumber:
+			</div>
+			<div class="formDiv" id="numSeats">
+				<input type="number" name="numSeats"> 
+				numSeats:
+			</div>
+			<div class="formDiv" id="room">
+				<input type="checkbox" name="room" value="room">
+				Room?:
+			</div>
+			<div class="formDiv" id="car">
+				<input type="checkbox" name="car" value="car">
+				Car?:
+			</div>
+			<div class="formDiv" id="price">
+				<input type="number" name="price"> 
+				Price:
+			</div>
+			<div class="formDiv" id="numRooms">
+				<input type="number" name="numRooms"> 
+				numRooms:
+			</div>
+			<div class="formDiv" id="numCars">
+				<input type="number" name="numCars"> 
+				numCars:
+			</div>
+			<div class="formDiv" id="location">
+				<input type="text" name="location"> 
+				Location:
+			</div>
+			<div class="formDiv" id="customerNumber">
+				<input type="number" name="customerNumber"> 
+				customerNumber:
+			</div>
 		</div>
-		<div class="formDiv" id="flightNumber">
-			flightNumber:
-			<input type="number" name="flightNumber"> 
-		</div>
-		<div class="formDiv" id="numSeats">
-			numSeats:
-			<input type="number" name="numSeats"> 
-		</div>
-		<div class="formDiv" id="room">
-			Room?:
-			<input type="checkbox" name="room" value="room">
-		</div>
-		<div class="formDiv" id="car">
-			Car?:
-			<input type="checkbox" name="car" value="car">
-		</div>
-		<div class="formDiv" id="price">
-			Price:
-			<input type="number" name="price"> 
-		</div>
-		<div class="formDiv" id="numRooms">
-			numRooms:
-			<input type="number" name="numRooms"> 
-		</div>
-		<div class="formDiv" id="numCars">
-			numCars:
-			<input type="number" name="numCars"> 
-		</div>
-		<div class="formDiv" id="location">
-			Location:
-			<input type="text" name="location"> 
-		</div>
-		<div class="formDiv" id="customerNumber">
-			customerNumber:
-			<input type="number" name="customerNumber"> 
-		</div>
-		<div class="formDiv">
+		<div >
 			<button>Send</button>
 		</div>
 	</form>
