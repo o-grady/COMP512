@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -21,18 +22,39 @@ import com.sun.net.httpserver.HttpServer;
 
 import shared.RequestDescriptor;
 import shared.RequestType;
+import shared.ResponseDescriptor;
+import shared.ServerConnection;
 
 public class WebServer {
-	
-    public static void main(String[] args) throws Exception {
+	private static Scanner scanner;
+	private static ServerConnection middlewareConnection;
+    public static void main(String[] args) {
     	//System.out.println(System.getProperty("user.dir"));
     	//System.out.println(System.getProperty("os.name"));
-
-        HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
+    	scanner = new Scanner(System.in);
+        HttpServer server = null;
+		try {
+			server = HttpServer.create(new InetSocketAddress(8000), 0);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         server.createContext("/", new StaticFileHandler());
         server.createContext("/request", new RequestHandler());
         server.setExecutor(null); // creates a default executor
         server.start();
+        if(args.length == 0){
+        	System.out.println("Enter middleware hostname");
+    		String hostname = scanner.nextLine();
+        	System.out.println("Enter middleware port number");
+    		String port = scanner.nextLine();
+    		try {
+				middlewareConnection = new ServerConnection(hostname, Integer.parseInt(port));
+			} catch (NumberFormatException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+        }
     }
 
     static class StaticFileHandler implements HttpHandler {
@@ -78,9 +100,14 @@ public class WebServer {
         public void handle(HttpExchange t) throws IOException {
         	InputStream body = t.getRequestBody();
         	String bodyAsString = convertStreamToString(body);//.replace("%2C", ",");
-        	System.out.println(bodyAsString);
         	RequestDescriptor req = parsePostData(bodyAsString);
-        	System.out.println(req.toString());
+        	try {
+        		ResponseDescriptor response = middlewareConnection.sendRequest(req);
+        		System.out.println("Response recieved " + response.message);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         }
     }
     static RequestDescriptor parsePostData(String postData){
@@ -103,11 +130,9 @@ public class WebServer {
     	RequestDescriptor request = new RequestDescriptor(requestType);
     	Field[] fields = RequestDescriptor.class.getDeclaredFields();
     	for(int i = 0 ; i < fields.length ; i++){
-    		//System.out.println(fields[i].getType().toString());
     		if(parameterMap.containsKey(fields[i].getName())){
     			try {
     				String paramValueStr = parameterMap.get(fields[i].getName());
-    				System.out.println(fields[i].getType().toString());
     				switch(fields[i].getType().toString()){
     					case "int":
     						int intParamValue = Integer.parseInt(paramValueStr);
@@ -121,7 +146,6 @@ public class WebServer {
     						fields[i].set(request, paramValueStr);
     						break;
     				}
-					//fields[i].set(request, parameterMap.get(fields[i].getName()));
 				} catch (IllegalArgumentException | IllegalAccessException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();

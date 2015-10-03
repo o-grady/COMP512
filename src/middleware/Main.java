@@ -2,6 +2,8 @@ package middleware;
 
 import java.util.Scanner;
 
+import shared.ServerConnection;
+
 
 public class Main {
 	

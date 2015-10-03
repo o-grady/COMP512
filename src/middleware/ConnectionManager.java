@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import shared.ServerConnection;
+
 public class ConnectionManager {
 	
 	private Map<ServerMode,ServerConnection> connections;
