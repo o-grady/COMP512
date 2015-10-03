@@ -92,6 +92,7 @@
 		    		parameterList.push("id", "customerNumber", "location");
 		    		break;
 		    	case "itinerary":
+		    		parameterList.push("id", "customerNumber", "location", "car", "room");
 		    		break;
 		    }
 		    return parameterList;
