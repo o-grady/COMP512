@@ -1,5 +1,6 @@
 package middleware;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,6 +45,17 @@ public class ConnectionManager {
 	}
 	
 	public boolean modeIsConnected(ServerMode mode) {
-		return connections.containsKey(mode);
+		if (connections.containsKey(mode)) {
+			if (connections.get(mode).isConnected()) {
+				return true;
+			} else {
+				connections.remove(mode);
+			}
+		}
+		return false;
+	}
+	
+	public Collection<ServerConnection> getAllConnections() {
+		return connections.values();
 	}
 }

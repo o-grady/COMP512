@@ -16,8 +16,8 @@ public class ServerConnection {
 	
 	public ServerConnection(String hostname, int port) throws IOException {
 		this.connectionSocket = new Socket(hostname, port);
-		this.streamIn = new ObjectInputStream(connectionSocket.getInputStream());
 		this.streamOut = new ObjectOutputStream(connectionSocket.getOutputStream());
+		this.streamIn = new ObjectInputStream(connectionSocket.getInputStream());
 	}
 	
 	public ResponseDescriptor sendRequest(RequestDescriptor request) throws Exception {
@@ -35,5 +35,16 @@ public class ServerConnection {
 			connectionSocket.close();
 		}
 	}
-
+	
+	public String getHostname() {
+		return connectionSocket.getInetAddress().getHostName();
+	}
+	
+	public int getPort() {
+		return connectionSocket.getPort();
+	}
+	
+	public boolean isConnected() {
+		return connectionSocket.isConnected();
+	}
 }

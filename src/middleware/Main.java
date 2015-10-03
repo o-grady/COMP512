@@ -31,50 +31,27 @@ public class Main {
         scanner.close();
     }
 
-    public void run() {
+    private void run() {
         System.out.println("Middleware Interface");
+        boolean exit = false;
         
-        while (true) {
+        while (!exit) {
         	System.out.println("Options:\n"
         			+ "1. Add server\n"
         			+ "2. Remove server\n"
-        			+ "3. Quit\n"
+        			+ "3. List all connections\n"
+        			+ "4. Quit\n"
         			+ "Please make a selection by entering a number:");
             
         	String operation = scanner.nextLine();
         	
-        	if (operation.equalsIgnoreCase("3")) {
-        		break;
-        	}
-        	
-        	System.out.println("Server mode:\n"
-        			+ "1. Car\n"
-        			+ "2. Plane\n"
-        			+ "3. Room\n"
-        			+ "Please make a selection by entering a number:");
-        	
-        	String serverMode = scanner.nextLine();
-        	
-        	ServerMode mode = null;
-        	switch(serverMode) {
-        	case "1":
-        		mode = ServerMode.CAR;
-        		break;
-        	case "2":
-        		mode = ServerMode.PLANE;
-        		break;
-        	case "3":
-        		mode = ServerMode.ROOM;
-        		break;
-        	}
-        	
-        	if (mode == null || operation == null) {
-        		System.out.println("Incorrect selection.");
-        		continue;
-        	}
-        	
         	switch(operation) {
         	case "1":
+        		ServerMode mode = this.inputServerMode();
+        		if (cm.modeIsConnected(mode)) {
+        			System.out.println("There is already a " + mode.toString() + " server connected. Please remove it before attempting a new server.");
+        			break;
+        		}
         		System.out.println("Enter the hostname: ");
         		String hostname = scanner.nextLine();
         		System.out.println("Enter the port number: ");
@@ -86,12 +63,72 @@ public class Main {
         		}
         		break;
         	case "2":
-        		cm.removeServer(mode);
-        		System.out.println("Server removed.");
+        		mode = this.inputServerMode();
+        		if (cm.modeIsConnected(mode)) {
+        			cm.removeServer(this.inputServerMode());
+            		System.out.println("Server removed.");
+        		} else {
+        			System.out.println("There is no " + mode.toString() + " server connected.");
+        		}
         		break;
+        	case "3":
+        		for (ServerMode sm : ServerMode.values()) {
+        			if (sm == ServerMode.CUSTOMER) {
+        				// The middleware server is the customer server so we 
+        				// have no reason to check whether it is connected
+        				continue;
+        			}
+        			if (cm.modeIsConnected(sm)) {
+        				ServerConnection sc = cm.getConnection(sm);
+        				System.out.println("Mode " + sm.toString() 
+        						+ " is connected: " 
+        						+ sc.getHostname() + ":" 
+        						+ sc.getPort());
+        			} else {
+        				System.out.println("Mode " + sm.toString() + " is not connected.");
+        			}
+        		}
+        		break;
+        	case "4":
+        		exit = true;
+        		continue;
+        	default:
+        		System.out.println("Incorrect selection.");
+        		continue;
         	}
     	}
         
         wm.stopThread();
+    }
+    
+    /*
+     * Guarantees the user inputs a valid mode selection.
+     */
+    private ServerMode inputServerMode() {
+    	ServerMode mode = null;
+    	
+    	while(mode == null) {
+        	System.out.println("Server mode:\n"
+        			+ "1. Car\n"
+        			+ "2. Plane\n"
+        			+ "3. Room\n"
+        			+ "Please make a selection by entering a number:");
+        	
+        	String input = scanner.nextLine();
+    		
+        	switch(input) {
+        	case "1":
+        		mode = ServerMode.CAR;
+        		break;
+        	case "2":
+        		mode = ServerMode.PLANE;
+        		break;
+        	case "3":
+        		mode = ServerMode.ROOM;
+        		break;
+        	}
+    	}
+    	
+    	return mode;
     }
 }
