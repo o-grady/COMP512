@@ -50,7 +50,7 @@ $(function(){
 	    	var parameterList = [];
 	    	switch(method){
 		    	case "newflight":
-		    		parameterList.push("id", "flightNumber", "numSeats");
+		    		parameterList.push("id", "flightNumber", "numSeats", "price");
 		    		break;
 		    	case "newcar":
 		    		parameterList.push("id", "location", "numCars", "price");
@@ -107,7 +107,8 @@ $(function(){
 		    		parameterList.push("id", "customerNumber", "location");
 		    		break;
 		    	case "itinerary":
-		    		parameterList.push("id", "customerNumber", "location", "car", "room");
+		    		parameterList.push("id", "customerNumber", "flightNumbers", "location", "car", "room");
+
 		    		break;
 		    }
 		    return parameterList;

@@ -1,6 +1,7 @@
 package shared;
 
 import java.io.Serializable;
+import java.util.Vector;
 
 public class RequestDescriptor implements Serializable {
 
@@ -17,12 +18,14 @@ public class RequestDescriptor implements Serializable {
     public int numCars;
     public String location;
     public int customerNumber;
+    public Vector<Integer> flightNumbers;
 	
 	public RequestDescriptor(RequestType requestType) {
 		this.requestType = requestType;
 		this.id = this.flightNumber = this.numSeats = this.price = this.numRooms = this.numCars = this.customerNumber = -1;
 		this.room = this.car = false;
 		this.location = null;
+		this.flightNumbers = null;
 	}
 	public String toString(){
 		return "id = " + this.id + "\n"
