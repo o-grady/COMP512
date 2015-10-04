@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
-
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -101,13 +100,27 @@ public class WebServer {
         	InputStream body = t.getRequestBody();
         	String bodyAsString = convertStreamToString(body);//.replace("%2C", ",");
         	RequestDescriptor req = parsePostData(bodyAsString);
-        	try {
-        		ResponseDescriptor response = middlewareConnection.sendRequest(req);
-        		System.out.println("Response recieved " + response.message);
+    		ResponseDescriptor response;
+    		String message;
+			try {
+				response = middlewareConnection.sendRequest(req);
+	    		System.out.println("Response recieved " + response.message);
+	    		message = response.message;
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
+				message = "MIDDLEWARE ERROR";
 				e.printStackTrace();
 			}
+    		Headers h = t.getResponseHeaders();
+    		h.set("Content-Type", "text/plain");
+
+    		byte[] messageBytes = message.getBytes();
+    		t.sendResponseHeaders(200, messageBytes.length);
+    		OutputStream responseBody = t.getResponseBody();
+    		System.out.println(messageBytes.length);
+    		responseBody.write(messageBytes);
+    		responseBody.close();
+    		t.close();
+
         }
     }
     static RequestDescriptor parsePostData(String postData){

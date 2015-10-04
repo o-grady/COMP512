@@ -1,12 +1,27 @@
-(function(){
-	document.addEventListener("DOMContentLoaded", function(){
+$(function(){
 		var activeParams = [];
 	    var selectElement = document.getElementById("method");
 	    var paramDiv = document.getElementById("parameters");
 	    var method = selectElement.value;
 	    selectElement.addEventListener("change", selectChangeListenerFn);
 	    selectChangeListenerFn();
-
+    	var responseDiv = $('#responseDiv');
+	    var form =  $('#requestForm');
+	    form.submit(function(ev){
+	    	responseDiv.height(200);
+	    	responseDiv.html('Loading...');
+	    	$.ajax({
+	    		type: form.attr('method'),
+	    		url: form.attr('action'),
+	    		data: form.serialize(),
+	    		dataType: "text"
+	    	}).done(function(data){
+	    			$('#responseDiv').html('<h2>Response received: '+ data +'</h2>');
+    		}).fail(function(data){
+	    			$('#responseDiv').html('<h2>Error</h2>');
+    		});
+	    	ev.preventDefault();
+	    });
 	    function selectChangeListenerFn(){
 	    	method = selectElement.value;
 	    	var paramListStr = getParameterList(method);
@@ -97,5 +112,4 @@
 		    }
 		    return parameterList;
 	    }
-	});
-})();
+});

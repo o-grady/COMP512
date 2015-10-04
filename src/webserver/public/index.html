@@ -4,10 +4,11 @@
 	<title>COMP 512</title>
 	<link rel="stylesheet" type="text/css" href="index.css">
 	<!--<script src="jquery-2.1.4.min.js"></script>-->
+	<script src="jquery-2.1.4.min.js"></script>
 	<script src="index.js"></script>
   </head>
   <body>
-	<form action="/request" method="post" style="display:block">
+	<form id="requestForm" action="/request" method="post" style="display:block">
 		<div>
 			<select name="method" id="method"> 
 				<option value="newflight">newflight</option>
@@ -78,5 +79,6 @@
 			<button>Send</button>
 		</div>
 	</form>
+	<div id="responseDiv"></div>
   </body>
 </html>
