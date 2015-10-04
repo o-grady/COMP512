@@ -6,7 +6,7 @@ import java.util.Scanner;
 import shared.WelcomeManager;
 
 
-public class Main {
+public class RMServer {
 	
 	private static WelcomeManager wm;
 

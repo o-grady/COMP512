@@ -8,9 +8,7 @@ import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.Vector;
@@ -189,7 +187,11 @@ public class WebServer {
     	return request;
     }
     static String convertStreamToString(java.io.InputStream is) {
-        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
+        Scanner s1 = new Scanner(is);
+        Scanner s2 = s1.useDelimiter("\\A");
+        String ret = s2.hasNext() ? s2.next() : "";
+        s1.close();
+        s2.close();
+        return ret;
     }
 }

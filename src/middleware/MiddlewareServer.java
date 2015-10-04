@@ -6,14 +6,14 @@ import shared.ServerConnection;
 import shared.WelcomeManager;
 
 
-public class Main {
+public class MiddlewareServer {
 	
 	private WelcomeManager wm;
 	private ConnectionManager cm;
 	private RequestHandler rh;
 	private static Scanner scanner;
 
-    public Main(int port) {
+    public MiddlewareServer(int port) {
     	cm = new ConnectionManager();
     	rh = new RequestHandler(cm);
     	wm = new WelcomeManager(rh, port);
@@ -28,7 +28,7 @@ public class Main {
         input = scanner.nextLine();
         int port = Integer.parseInt(input);
         
-        Main client = new Main(port);
+        MiddlewareServer client = new MiddlewareServer(port);
         client.run();
         
         scanner.close();
