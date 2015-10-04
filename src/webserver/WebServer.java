@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.Vector;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -101,11 +102,20 @@ public class WebServer {
         	String bodyAsString = convertStreamToString(body);//.replace("%2C", ",");
         	RequestDescriptor req = parsePostData(bodyAsString);
     		ResponseDescriptor response;
-    		String message;
+    		String message = null;
 			try {
 				response = middlewareConnection.sendRequest(req);
-	    		System.out.println("Response recieved " + response.message);
-	    		message = response.message;
+				if(response.stringResponse != null){
+					message = response.stringResponse;
+				}else if(response.intResponse != -1){
+					message = "" + response.intResponse;
+				}else{
+					message = "" + response.booleanResponse;
+				}
+				if(response.additionalMessage != null){
+					message += ", Message: " + response.additionalMessage;
+				}
+	    		System.out.println("Response recieved " + message);
 			} catch (Exception e) {
 				message = "MIDDLEWARE ERROR";
 				e.printStackTrace();
@@ -142,6 +152,7 @@ public class WebServer {
     	}
     	RequestDescriptor request = new RequestDescriptor(requestType);
     	Field[] fields = RequestDescriptor.class.getDeclaredFields();
+    	//Fill in reqest fields using reflection
     	for(int i = 0 ; i < fields.length ; i++){
     		if(parameterMap.containsKey(fields[i].getName())){
     			try {
@@ -157,6 +168,16 @@ public class WebServer {
     						break;
     					case "class java.lang.String":
     						fields[i].set(request, paramValueStr);
+    						break;
+    					case "class java.util.Vector":
+    						//Convert comma separated flights into Vector
+    						Vector<Integer> paramValueVector = new Vector<Integer>();
+    						String[] flightNumStrings = paramValueStr.split("%2C");
+    						for(int j = 0 ; j < flightNumStrings.length ; j++){
+    							int flightNum = Integer.parseInt(flightNumStrings[j]);
+    							paramValueVector.addElement(flightNum);
+    						}
+    						fields[i].set(request, paramValueVector);
     						break;
     				}
 				} catch (IllegalArgumentException | IllegalAccessException e) {
