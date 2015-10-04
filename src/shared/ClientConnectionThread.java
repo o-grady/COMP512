@@ -1,5 +1,6 @@
 package shared;
 
+import java.io.EOFException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
@@ -42,9 +43,11 @@ public class ClientConnectionThread extends Thread{
 		        outToClient.writeObject(response);
 	        } 
 	        socket.close();
-		}catch(Exception e){
+		} catch (EOFException ex){
+			// eat the exception and do nothing - the client has disconnected.
+		} catch(Exception ex) {
 			System.out.println("Exception caught in ClientConnectionThread");
-			e.printStackTrace();
+			ex.printStackTrace();
 		}
 	}
 }
