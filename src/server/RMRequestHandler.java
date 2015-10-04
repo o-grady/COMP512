@@ -1,9 +1,10 @@
 package server;
 
+import shared.IRequestHandler;
 import shared.RequestDescriptor;
 import shared.ResponseDescriptor;
 
-public class RMRequestHandler {
+public class RMRequestHandler implements IRequestHandler {
 
 	private ResourceManager rm;
 

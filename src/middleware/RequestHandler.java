@@ -2,11 +2,12 @@ package middleware;
 
 import server.RMRequestHandler;
 import server.ResourceManagerImpl;
+import shared.IRequestHandler;
 import shared.RequestDescriptor;
 import shared.RequestType;
 import shared.ResponseDescriptor;
 
-public class RequestHandler {
+public class RequestHandler implements IRequestHandler {
 
 	private ConnectionManager cm;
 	private RMRequestHandler rh;

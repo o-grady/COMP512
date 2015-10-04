@@ -1,4 +1,4 @@
-package middleware;
+package shared;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -7,10 +7,10 @@ import java.net.Socket;
 public class WelcomeManager extends Thread {
 	
 	private int port;
-	private RequestHandler requestHandler;
+	private IRequestHandler requestHandler;
 	private ServerSocket welcomeSocket;
 	
-	public WelcomeManager(RequestHandler requestHandler, int port) {
+	public WelcomeManager(IRequestHandler requestHandler, int port) {
 		this.port = port;
 		this.requestHandler = requestHandler;
 		this.welcomeSocket = null;

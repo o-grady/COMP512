@@ -1,20 +1,17 @@
-package middleware;
+package shared;
 
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
-import shared.RequestDescriptor;
-import shared.ResponseDescriptor;
-
 public class ClientConnectionThread extends Thread{
 
-	private RequestHandler requestHandler;
+	private IRequestHandler requestHandler;
 	private Socket socket;
 	private ObjectInputStream inFromClient;
 	private ObjectOutputStream outToClient;
 	
-	public ClientConnectionThread(Socket socket, RequestHandler requestHandler) {
+	public ClientConnectionThread(Socket socket, IRequestHandler requestHandler) {
 		super();
 		this.requestHandler = requestHandler;
 		this.socket = socket;

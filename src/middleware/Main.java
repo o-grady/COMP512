@@ -3,6 +3,7 @@ package middleware;
 import java.util.Scanner;
 
 import shared.ServerConnection;
+import shared.WelcomeManager;
 
 
 public class Main {
@@ -31,6 +32,7 @@ public class Main {
         client.run();
         
         scanner.close();
+        System.exit(0);
     }
 
     private void run() {
@@ -38,7 +40,7 @@ public class Main {
         boolean exit = false;
         
         while (!exit) {
-        	System.out.println("Options:\n"
+        	System.out.println("\nOptions:\n"
         			+ "1. Add server\n"
         			+ "2. Remove server\n"
         			+ "3. List all connections\n"
