@@ -10,12 +10,12 @@ public class MiddlewareServer {
 	
 	private WelcomeManager wm;
 	private ConnectionManager cm;
-	private RequestHandler rh;
+	private MiddlewareRequestHandler rh;
 	private static Scanner scanner;
 
     public MiddlewareServer(int port) {
     	cm = new ConnectionManager();
-    	rh = new RequestHandler(cm);
+    	rh = new MiddlewareRequestHandler(cm);
     	wm = new WelcomeManager(rh, port);
     	wm.startThread();
 	}

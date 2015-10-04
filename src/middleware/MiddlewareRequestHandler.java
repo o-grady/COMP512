@@ -8,12 +8,12 @@ import shared.RequestType;
 import shared.ResponseDescriptor;
 import shared.ServerConnection;
 
-public class RequestHandler implements IRequestHandler {
+public class MiddlewareRequestHandler implements IRequestHandler {
 
 	private ConnectionManager cm;
 	private RMRequestHandler rh;
 	
-	public RequestHandler(ConnectionManager cm) {
+	public MiddlewareRequestHandler(ConnectionManager cm) {
 		this.cm = cm;
 		this.rh = new RMRequestHandler(new ResourceManagerImpl());
 	}
