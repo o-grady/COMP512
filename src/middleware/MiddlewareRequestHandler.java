@@ -83,7 +83,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		RequestDescriptor req2 = null;
 		ResponseDescriptor res = new ResponseDescriptor();
 		//return if no flights
-		if(request.flightNumbers == null){
+		if(request.flightNumbers == null || request.flightNumbers.isEmpty()){
 			res.booleanResponse = false;
 			res.additionalMessage = "No flight numbers requested";
 			return res;

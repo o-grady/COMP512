@@ -62,13 +62,7 @@ public class RMRequestHandler implements IRequestHandler {
 					request.customerNumber);
 			break;
 		case QUERYFLIGHT:
-			System.out.println("QUERYFLIGHT received, waiting for 20 seconds");
-			try {
-				Thread.sleep(20000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			System.out.println("QUERYFLIGHT received");
 			intResponse = rm.queryFlight(request.id,
 					request.flightNumber);
 			break;

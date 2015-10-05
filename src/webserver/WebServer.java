@@ -41,18 +41,27 @@ public class WebServer {
         server.createContext("/request", new RequestHandler());
         server.setExecutor(null); // creates a default executor
         server.start();
-        if(args.length == 0){
-        	System.out.println("Enter middleware hostname");
-    		String hostname = scanner.nextLine();
+        String hostname = null;
+        String port = null;
+        if(args.length >= 2){
+        	hostname = args[0];
+        	port = args[1];
+        }else if(args.length == 1){
+        	hostname = args[0];
         	System.out.println("Enter middleware port number");
-    		String port = scanner.nextLine();
-    		try {
-				middlewareConnection = new ServerConnection(hostname, Integer.parseInt(port));
-			} catch (NumberFormatException | IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+    		port = scanner.nextLine();
+        }else if(args.length == 0){
+        	System.out.println("Enter middleware hostname");
+    		hostname = scanner.nextLine();
+        	System.out.println("Enter middleware port number");
+    		port = scanner.nextLine();
         }
+		try {
+			middlewareConnection = new ServerConnection(hostname, Integer.parseInt(port));
+		} catch (NumberFormatException | IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     static class StaticFileHandler implements HttpHandler {

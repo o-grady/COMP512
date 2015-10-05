@@ -19,16 +19,69 @@ public class MiddlewareServer {
     	wm = new WelcomeManager(rh, port);
     	wm.startThread();
 	}
+    public MiddlewareServer(int port, String carHost, int carPort, String flightHost,
+    		int flightPort, String roomHost, int roomPort) {
+    	cm = new ConnectionManager();
+    	rh = new MiddlewareRequestHandler(cm);
+    	wm = new WelcomeManager(rh, port);
+    	wm.startThread();
+    	//connect the servers
+    	for(int i = 0 ; i < 3 ; i++){
+			ServerMode mode = null;
+			String serverHost = null;
+			int serverPort = 0;
+			switch(i){
+				case 0:
+					mode = ServerMode.CAR;
+					serverHost = carHost;
+					serverPort = carPort;
+					break;
+				case 1:
+					mode = ServerMode.PLANE;
+					serverHost = flightHost;
+					serverPort = flightPort;
+					break;
+				case 2:
+					mode = ServerMode.ROOM;
+					serverHost = roomHost;
+					serverPort = roomPort;
+					break;
+			}
 
+			if (cm.addServer(mode, serverHost, serverPort)) {
+				System.out.println("Success!");
+			} else {
+				System.out.println("Failed.");
+			}
+    	}
+	}
 	public static void main(String[] args) {
 		scanner = new Scanner(System.in);
     	String input;
-    	
-    	System.out.println("Enter the port to listen on : ");
-        input = scanner.nextLine();
-        int port = Integer.parseInt(input);
-        
-        MiddlewareServer client = new MiddlewareServer(port);
+    	int port = 0;
+        MiddlewareServer client = null;
+    	if(args.length == 0){
+	    	System.out.println("Enter the port to listen on : ");
+	        input = scanner.nextLine();
+	        port = Integer.parseInt(input);
+	        client = new MiddlewareServer(port);
+		}else if(args.length == 7){
+			//port carHost carPort flightHost flightPort roomHost roomPort
+			port = Integer.parseInt(args[0]);
+			String carHost = args[1];
+			int carPort = Integer.parseInt(args[2]);
+			String flightHost = args[3];
+			int flightPort = Integer.parseInt(args[4]);
+			String roomHost = args[5];
+			int roomPort = Integer.parseInt(args[6]);
+			client = new MiddlewareServer(port, carHost, carPort, 
+					flightHost, flightPort, roomHost, roomPort);
+		}else{
+			System.out.println("Incorrect number of arguments, expecting 0 or 7");
+			scanner.close();
+			System.exit(0);
+		}
+
         client.run();
         
         scanner.close();
