@@ -75,4 +75,20 @@
 			</sequential>
 		</parallel>	
 	</target>
+	<target name="startTwoTestClients" depends="compile">
+		<parallel>
+			<daemons>
+				<antcall target="runServers"/>
+				<antcall target="runMiddleware"/>
+			</daemons>
+			<sequential>
+				<parallel>
+					<antcall target="runTestClient"/>
+					<antcall target="runTestClient"/>
+					<antcall target="runTestClient"/>
+				</parallel>
+			</sequential>
+		</parallel>	
+	</target>
+	
 </project>
