@@ -16,7 +16,7 @@ $(function(){
 	    		data: form.serialize(),
 	    		dataType: "text"
 	    	}).done(function(data){
-	    			$('#responseDiv').html('<h2>Response received: '+ data +'</h2>');
+	    			$('#responseDiv').html('<h2>Response received: '+ data.replace(/\n/g, '<br>') +'</h2>');
     		}).fail(function(data){
 	    			$('#responseDiv').html('<h2>Error</h2>');
     		});

@@ -58,10 +58,14 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			}
 			
 			if (mode == ServerMode.CUSTOMER) {
-				for( ServerConnection connection : cm.getAllConnections()){
-					connection.sendRequest(request);
+				if (request.requestType == RequestType.QUERYCUSTOMER){
+					return this.queryCustomer(request);
+				}else{
+					for( ServerConnection connection : cm.getAllConnections()){
+						connection.sendRequest(request);
+					}
+					return rh.handleRequest(request);
 				}
-				return rh.handleRequest(request);
 			}
 			else if (cm.modeIsConnected(mode)) {
 				return cm.getConnection(mode).sendRequest(request);
@@ -73,7 +77,25 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			return new ResponseDescriptor("Error: " + ex.getClass().getName() + ", " + ex.getMessage());
 		}
 	}
-	
+	private ResponseDescriptor queryCustomer(RequestDescriptor request) throws Exception{
+		String custInfo = "";
+		String startLine = null;
+		String endLine = null;
+		for( ServerConnection connection : cm.getAllConnections()){
+			String resp = connection.sendRequest(request).stringResponse;
+			String[] lines = resp.split("\n");
+			for (int i = 1 ; i < lines.length - 1 ; i++){
+				custInfo += lines[i] + "\n";
+			}
+			if(startLine == null){
+				startLine = lines[0];
+				endLine = lines[lines.length - 1];
+			}
+		}
+		custInfo = startLine + "\n" + custInfo + endLine;
+		
+		return new ResponseDescriptor(custInfo);
+	}
 	private ResponseDescriptor reserveItinerary(RequestDescriptor request) {
 		int id = request.id;
 		int customerNumber = request.customerNumber;
