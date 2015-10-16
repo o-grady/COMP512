@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project basedir="." default="help" name="project">
 
-    <property name="service.name" value="rm"/>
-    <property name="service.host" value="localhost"/>
-    <property name="service.port" value="8080"/>
+    <property name="service.nameCar" value="rmCar"/>
+    <property name="service.hostCar" value="localhost"/>
+    <property name="service.portCar" value="8080"/>
+	
+	<property name="service.nameFlight" value="rmFlight"/>
+    <property name="service.hostFlight" value="localhost"/>
+    <property name="service.portFlight" value="8081"/>
+	
+	<property name="service.nameRoom" value="rmRoom"/>
+    <property name="service.hostRoom" value="localhost"/>
+    <property name="service.portRoom" value="8082"/>
 
     <path id="jaxws.classpath">
         <pathelement location="${java.home}/../lib/tools.jar"/>
@@ -49,7 +57,7 @@
 
     <target name="create-war">
         <war 
-            warfile="${basedir}/build/war/${service.name}.war" 
+            warfile="${basedir}/build/war/${service.nameCar}.war" 
             webxml="etc/web.xml">
             <webinf dir="${basedir}/etc" includes="sun-jaxws.xml"/>
             <zipfileset
@@ -58,29 +66,84 @@
                     prefix="WEB-INF/wsdl"/>
             <classes dir="${basedir}/build/classes"/>
         </war>
+        <war 
+            warfile="${basedir}/build/war/${service.nameFlight}.war" 
+            webxml="etc/web.xml">
+            <webinf dir="${basedir}/etc" includes="sun-jaxws.xml"/>
+            <zipfileset
+                    dir="${basedir}/etc"
+                    includes="*.wsdl, *.xsd"
+                    prefix="WEB-INF/wsdl"/>
+            <classes dir="${basedir}/build/classes"/>
+        </war>
+                <war 
+                    warfile="${basedir}/build/war/${service.nameRoom}.war" 
+                    webxml="etc/web.xml">
+                    <webinf dir="${basedir}/etc" includes="sun-jaxws.xml"/>
+                    <zipfileset
+                            dir="${basedir}/etc"
+                            includes="*.wsdl, *.xsd"
+                            prefix="WEB-INF/wsdl"/>
+                    <classes dir="${basedir}/build/classes"/>
+        </war>
     </target>
 
     <target name="deploy-war">
-        <delete dir="${basedir}/webapps/${service.name}" 
+        <delete dir="${basedir}/webapps/${service.nameCar}" 
             includeEmptyDirs="true"/>
-        <mkdir dir="${basedir}/webapps/${service.name}"/>        
+        <mkdir dir="${basedir}/webapps/${service.nameCar}"/>        
         <unzip 
-            src="${basedir}/build/war/${service.name}.war"
-            dest="${basedir}/webapps/${service.name}"/>
+            src="${basedir}/build/war/${service.nameCar}.war"
+            dest="${basedir}/webapps/${service.nameCar}"/>
+    	
+        <delete dir="${basedir}/webapps/${service.nameFlight}" 
+            includeEmptyDirs="true"/>
+        <mkdir dir="${basedir}/webapps/${service.nameFlight}"/>        
+        <unzip 
+            src="${basedir}/build/war/${service.nameFlight}.war"
+            dest="${basedir}/webapps/${service.nameFlight}"/>
+    	
+        <delete dir="${basedir}/webapps/${service.nameRoom}" 
+            includeEmptyDirs="true"/>
+        <mkdir dir="${basedir}/webapps/${service.nameRoom}"/>        
+        <unzip 
+            src="${basedir}/build/war/${service.nameRoom}.war"
+            dest="${basedir}/webapps/${service.nameRoom}"/>
     </target>
     
     <target name="start-tomcat">
-        <echo message="Starting Tomcat and deploying service ... "/>
-        <java fork="true" classname="server.ws.Main">
-            <classpath>
-                <path refid="jaxws.classpath"/>
-                <pathelement location="${basedir}/build/classes"/>
-            </classpath>
-            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
-            <arg value="${service.name}"/>
-            <arg value="${service.port}"/>
-            <arg value="${basedir}/webapps"/>
-        </java>
+		<parallel>
+	        <java fork="true" classname="server.ws.Main">
+	            <classpath>
+	                <path refid="jaxws.classpath"/>
+	                <pathelement location="${basedir}/build/classes"/>
+	            </classpath>
+	            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
+	            <arg value="${service.nameCar}"/>
+	            <arg value="${service.portCar}"/>
+	            <arg value="${basedir}/webapps"/>
+	        </java>
+	        <java fork="true" classname="server.ws.Main">
+	            <classpath>
+	                <path refid="jaxws.classpath"/>
+	                <pathelement location="${basedir}/build/classes"/>
+	            </classpath>
+	            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
+	            <arg value="${service.nameFlight}"/>
+	            <arg value="${service.portFlight}"/>
+	            <arg value="${basedir}/webapps"/>
+	        </java>
+	        <java fork="true" classname="server.ws.Main">
+	            <classpath>
+	                <path refid="jaxws.classpath"/>
+	                <pathelement location="${basedir}/build/classes"/>
+	            </classpath>
+	            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
+	            <arg value="${service.nameRoom}"/>
+	            <arg value="${service.portRoom}"/>
+	            <arg value="${basedir}/webapps"/>
+	        </java>
+		</parallel>
     </target>
 
     <target name="server" depends="setup">
@@ -101,7 +164,7 @@
                 keep="true"
                 destdir="${basedir}/build/classes"
                 package="client"
-                wsdl="http://${service.host}:${service.port}/${service.name}/service?wsdl">
+                wsdl="http://${service.hostCar}:${service.portCar}/${service.nameCar}/service?wsdl">
         </wsimport>
     </target>
 
@@ -121,9 +184,15 @@
                 <path refid="jaxws.classpath"/>
                 <pathelement location="${basedir}/build/classes"/>
             </classpath>
-            <arg value="${service.name}"/>
-            <arg value="${service.host}"/>
-            <arg value="${service.port}"/>
+            <arg value="${service.nameCar}"/>
+            <arg value="${service.hostCar}"/>
+            <arg value="${service.portCar}"/>
+        	<arg value="${service.nameFlight}"/>
+            <arg value="${service.hostFlight}"/>
+            <arg value="${service.portFlight}"/>
+        	<arg value="${service.nameRoom}"/>
+            <arg value="${service.hostRoom}"/>
+            <arg value="${service.portRoom}"/>
         </java>
     </target>
 

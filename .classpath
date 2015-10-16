@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="build"/>
 	<classpathentry kind="lib" path="lib/gmbal-api-only.jar"/>
 	<classpathentry kind="lib" path="lib/ha-api.jar"/>
 	<classpathentry kind="lib" path="lib/jaxb-core.jar"/>

@@ -6,25 +6,41 @@ import java.io.*;
 
 public class Client extends WSClient {
 
-    public Client(String serviceName, String serviceHost, int servicePort) 
+    public Client(String serviceNameCar, String serviceHostCar, int servicePortCar, 
+    		String serviceNameFlight, String serviceHostFlight, int servicePortFlight, 
+    		String serviceNameRoom, String serviceHostRoom, int servicePortRoom) 
     throws Exception {
-        super(serviceName, serviceHost, servicePort);
+        super(serviceNameCar, serviceHostCar, servicePortCar, 
+        		serviceNameFlight, serviceHostFlight,servicePortFlight, 
+        		serviceNameRoom, serviceHostRoom, servicePortRoom) ;
     }
 
     public static void main(String[] args) {
         try {
         
-            if (args.length != 3) {
-                System.out.println("Usage: MyClient <service-name> " 
-                        + "<service-host> <service-port>");
+            if (args.length != 9) {
+                System.out.println("Usage: MyClient <service-name-car> " 
+                        + "<service-host-car> <service-port-car>" 
+                        + "<service-name-flight> <service-host-flight> <service-port-flight>"
+                        + "<service-name-room> <service-host-room> <service-port-room>");
                 System.exit(-1);
             }
             
-            String serviceName = args[0];
-            String serviceHost = args[1];
-            int servicePort = Integer.parseInt(args[2]);
+            String serviceNameCar = args[0];
+            String serviceHostCar = args[1];
+            int servicePortCar = Integer.parseInt(args[2]);
             
-            Client client = new Client(serviceName, serviceHost, servicePort);
+            String serviceNameFlight = args[3];
+            String serviceHostFlight = args[4];
+            int servicePortFlight = Integer.parseInt(args[5]);
+            
+            String serviceNameRoom = args[6];
+            String serviceHostRoom = args[7];
+            int servicePortRoom = Integer.parseInt(args[8]);
+            
+            Client client = new Client(serviceNameCar, serviceHostCar, servicePortCar, 
+            		serviceNameFlight, serviceHostFlight,servicePortFlight, 
+            		serviceNameRoom, serviceHostRoom, servicePortRoom) ;
             
             client.run();
             
@@ -98,7 +114,7 @@ public class Client extends WSClient {
                     numSeats = getInt(arguments.elementAt(3));
                     flightPrice = getInt(arguments.elementAt(4));
                     
-                    if (proxy.addFlight(id, flightNumber, numSeats, flightPrice))
+                    if (proxyFlight.addFlight(id, flightNumber, numSeats, flightPrice))
                         System.out.println("Flight added");
                     else
                         System.out.println("Flight could not be added");
@@ -125,7 +141,7 @@ public class Client extends WSClient {
                     numCars = getInt(arguments.elementAt(3));
                     price = getInt(arguments.elementAt(4));
 
-                    if (proxy.addCars(id, location, numCars, price))
+                    if (proxyCar.addCars(id, location, numCars, price))
                         System.out.println("cars added");
                     else
                         System.out.println("cars could not be added");
@@ -152,7 +168,7 @@ public class Client extends WSClient {
                     numRooms = getInt(arguments.elementAt(3));
                     price = getInt(arguments.elementAt(4));
 
-                    if (proxy.addRooms(id, location, numRooms, price))
+                    if (proxyRoom.addRooms(id, location, numRooms, price))
                         System.out.println("rooms added");
                     else
                         System.out.println("rooms could not be added");
@@ -172,7 +188,9 @@ public class Client extends WSClient {
                 System.out.println("Adding a new Customer using id: " + arguments.elementAt(1));
                 try {
                     id = getInt(arguments.elementAt(1));
-                    int customer = proxy.newCustomer(id);
+                    int customer = proxyCar.newCustomer(id);
+                    proxyFlight.newCustomer(id);
+                    proxyRoom.newCustomer(id);
                     System.out.println("new customer id: " + customer);
                 }
                 catch(Exception e) {
@@ -193,7 +211,7 @@ public class Client extends WSClient {
                     id = getInt(arguments.elementAt(1));
                     flightNumber = getInt(arguments.elementAt(2));
 
-                    if (proxy.deleteFlight(id, flightNumber))
+                    if (proxyFlight.deleteFlight(id, flightNumber))
                         System.out.println("Flight Deleted");
                     else
                         System.out.println("Flight could not be deleted");
@@ -216,7 +234,7 @@ public class Client extends WSClient {
                     id = getInt(arguments.elementAt(1));
                     location = getString(arguments.elementAt(2));
 
-                    if (proxy.deleteCars(id, location))
+                    if (proxyCar.deleteCars(id, location))
                         System.out.println("cars Deleted");
                     else
                         System.out.println("cars could not be deleted");
@@ -239,7 +257,7 @@ public class Client extends WSClient {
                     id = getInt(arguments.elementAt(1));
                     location = getString(arguments.elementAt(2));
 
-                    if (proxy.deleteRooms(id, location))
+                    if (proxyRoom.deleteRooms(id, location))
                         System.out.println("rooms Deleted");
                     else
                         System.out.println("rooms could not be deleted");
@@ -261,8 +279,9 @@ public class Client extends WSClient {
                 try {
                     id = getInt(arguments.elementAt(1));
                     int customer = getInt(arguments.elementAt(2));
-
-                    if (proxy.deleteCustomer(id, customer))
+                    proxyCar.deleteCustomer(id, customer);
+                    proxyFlight.deleteCustomer(id, customer);
+                    if (proxyRoom.deleteCustomer(id, customer))
                         System.out.println("Customer Deleted");
                     else
                         System.out.println("Customer could not be deleted");
@@ -284,7 +303,7 @@ public class Client extends WSClient {
                 try {
                     id = getInt(arguments.elementAt(1));
                     flightNumber = getInt(arguments.elementAt(2));
-                    int seats = proxy.queryFlight(id, flightNumber);
+                    int seats = proxyFlight.queryFlight(id, flightNumber);
                     System.out.println("Number of seats available: " + seats);
                 }
                 catch(Exception e) {
@@ -305,7 +324,7 @@ public class Client extends WSClient {
                     id = getInt(arguments.elementAt(1));
                     location = getString(arguments.elementAt(2));
 
-                    numCars = proxy.queryCars(id, location);
+                    numCars = proxyCar.queryCars(id, location);
                     System.out.println("number of cars at this location: " + numCars);
                 }
                 catch(Exception e) {
@@ -326,7 +345,7 @@ public class Client extends WSClient {
                     id = getInt(arguments.elementAt(1));
                     location = getString(arguments.elementAt(2));
 
-                    numRooms = proxy.queryRooms(id, location);
+                    numRooms = proxyRoom.queryRooms(id, location);
                     System.out.println("number of rooms at this location: " + numRooms);
                 }
                 catch(Exception e) {
@@ -346,8 +365,10 @@ public class Client extends WSClient {
                 try {
                     id = getInt(arguments.elementAt(1));
                     int customer = getInt(arguments.elementAt(2));
-
-                    String bill = proxy.queryCustomerInfo(id, customer);
+                    
+                    String bill = proxyCar.queryCustomerInfo(id, customer);
+                    bill += proxyFlight.queryCustomerInfo(id, customer);
+                    bill += proxyRoom.queryCustomerInfo(id, customer);
                     System.out.println("Customer info: " + bill);
                 }
                 catch(Exception e) {
@@ -368,7 +389,7 @@ public class Client extends WSClient {
                     id = getInt(arguments.elementAt(1));
                     flightNumber = getInt(arguments.elementAt(2));
 
-                    price = proxy.queryFlightPrice(id, flightNumber);
+                    price = proxyFlight.queryFlightPrice(id, flightNumber);
                     System.out.println("Price of a seat: " + price);
                 }
                 catch(Exception e) {
@@ -389,7 +410,7 @@ public class Client extends WSClient {
                     id = getInt(arguments.elementAt(1));
                     location = getString(arguments.elementAt(2));
 
-                    price = proxy.queryCarsPrice(id, location);
+                    price = proxyCar.queryCarsPrice(id, location);
                     System.out.println("Price of a car at this location: " + price);
                 }
                 catch(Exception e) {
@@ -410,7 +431,7 @@ public class Client extends WSClient {
                     id = getInt(arguments.elementAt(1));
                     location = getString(arguments.elementAt(2));
 
-                    price = proxy.queryRoomsPrice(id, location);
+                    price = proxyRoom.queryRoomsPrice(id, location);
                     System.out.println("Price of rooms at this location: " + price);
                 }
                 catch(Exception e) {
@@ -433,7 +454,7 @@ public class Client extends WSClient {
                     int customer = getInt(arguments.elementAt(2));
                     flightNumber = getInt(arguments.elementAt(3));
 
-                    if (proxy.reserveFlight(id, customer, flightNumber))
+                    if (proxyFlight.reserveFlight(id, customer, flightNumber))
                         System.out.println("Flight Reserved");
                     else
                         System.out.println("Flight could not be reserved.");
@@ -458,7 +479,7 @@ public class Client extends WSClient {
                     int customer = getInt(arguments.elementAt(2));
                     location = getString(arguments.elementAt(3));
                     
-                    if (proxy.reserveCar(id, customer, location))
+                    if (proxyCar.reserveCar(id, customer, location))
                         System.out.println("car Reserved");
                     else
                         System.out.println("car could not be reserved.");
@@ -483,7 +504,7 @@ public class Client extends WSClient {
                     int customer = getInt(arguments.elementAt(2));
                     location = getString(arguments.elementAt(3));
                     
-                    if (proxy.reserveRoom(id, customer, location))
+                    if (proxyRoom.reserveRoom(id, customer, location))
                         System.out.println("room Reserved");
                     else
                         System.out.println("room could not be reserved.");
@@ -517,7 +538,7 @@ public class Client extends WSClient {
                     car = getBoolean(arguments.elementAt(arguments.size()-2));
                     room = getBoolean(arguments.elementAt(arguments.size()-1));
                     
-                    if (proxy.reserveItinerary(id, customer, flightNumbers, 
+                    if (proxyCar.reserveItinerary(id, customer, flightNumbers, 
                             location, car, room))
                         System.out.println("Itinerary Reserved");
                     else
@@ -548,8 +569,9 @@ public class Client extends WSClient {
                 try {
                     id = getInt(arguments.elementAt(1));
                     int customer = getInt(arguments.elementAt(2));
-
-                    boolean c = proxy.newCustomerId(id, customer);
+                    proxyFlight.newCustomerId(id, customer);
+                    proxyRoom.newCustomerId(id, customer);
+                    boolean c = proxyCar.newCustomerId(id, customer);
                     System.out.println("new customer id: " + customer);
                 }
                 catch(Exception e) {
