@@ -12,6 +12,10 @@
 	<property name="service.nameRoom" value="rmRoom"/>
     <property name="service.hostRoom" value="localhost"/>
     <property name="service.portRoom" value="8082"/>
+	
+	<property name="service.nameMiddleware" value="middleware"/>
+    <property name="service.hostMiddleware" value="localhost"/>
+    <property name="service.portMiddleware" value="8083"/>
 
     <path id="jaxws.classpath">
         <pathelement location="${java.home}/../lib/tools.jar"/>
@@ -22,7 +26,7 @@
     </path>
 
     <target name="clean">
-        <delete dir="${basedir}/build" includeEmptyDirs="true"/>
+        <!--<delete dir="${basedir}/build" includeEmptyDirs="true"/>-->
     </target>
 
     <target name="setup">
@@ -153,6 +157,86 @@
         <antcall target="deploy-war"/>
         <antcall target="start-tomcat"/>        
     </target>
+	
+    <target name="generate-middleware" depends="setup">
+        <wsimport
+                quiet="true"
+                keep="true"
+                destdir="${basedir}/build/classes"
+                package="middleware"
+                wsdl="http://${service.hostCar}:${service.portCar}/${service.nameCar}/service?wsdl">
+        </wsimport>
+    </target>
+	
+    <target name="build-server-middleware" depends="generate-middleware">
+        <annotationProcessing
+                fork="true"
+                debug="true"
+                verbose="${verbose}"
+                destdir="${basedir}/build/classes"
+                srcdir="${basedir}/src"
+                includes="middleware/**"
+                sourceDestDir="${basedir}/build/classes"
+                procOnly="false"
+                sourcepath="${basedir}/src">
+            <classpath>
+                <path refid="jaxws.classpath"/>
+                <pathelement location="${basedir}/src"/>
+            </classpath>
+        </annotationProcessing>
+    </target>
+
+    <target name="create-war-middleware">
+        <war 
+            warfile="${basedir}/build/war/${service.nameMiddleware}.war" 
+            webxml="etc/web.xml">
+            <webinf dir="${basedir}/etc/middleware" includes="sun-jaxws.xml"/>
+            <zipfileset
+                    dir="${basedir}/etc"
+                    includes="*.wsdl, *.xsd"
+                    prefix="WEB-INF/wsdl"/>
+            <classes dir="${basedir}/build/classes"/>
+        </war>
+    </target>
+
+    <target name="deploy-war-middleware">
+        <delete dir="${basedir}/webapps/${service.nameMiddleware}" 
+            includeEmptyDirs="true"/>
+        <mkdir dir="${basedir}/webapps/${service.nameMiddleware}"/>        
+        <unzip 
+            src="${basedir}/build/war/${service.nameMiddleware}.war"
+            dest="${basedir}/webapps/${service.nameMiddleware}"/>
+    </target>
+    
+    <target name="start-tomcat-middleware">
+        <java fork="true" classname="middleware.Middleware">
+            <classpath>
+                <path refid="jaxws.classpath"/>
+                <pathelement location="${basedir}/build/classes"/>
+            </classpath>
+            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
+            <arg value="${service.nameCar}"/>
+            <arg value="${service.hostCar}"/>
+            <arg value="${service.portCar}"/>
+        	<arg value="${service.nameFlight}"/>
+            <arg value="${service.hostFlight}"/>
+            <arg value="${service.portFlight}"/>
+        	<arg value="${service.nameRoom}"/>
+            <arg value="${service.hostRoom}"/>
+            <arg value="${service.portRoom}"/>
+            <arg value="${service.nameMiddleware}"/>
+            <arg value="${service.portMiddleware}"/>
+            <arg value="${basedir}/webapps"/>
+        </java>
+    </target>
+
+    <target name="middleware" depends="setup">
+        <antcall target="clean"/>
+        <antcall target="build-server-middleware"/>
+        <antcall target="create-war-middleware"/>
+        <antcall target="deploy-war-middleware"/>
+        <antcall target="start-tomcat-middleware"/>
+    </target>
 
     <taskdef name="wsimport" classname="com.sun.tools.ws.ant.WsImport">
         <classpath refid="jaxws.classpath"/>
@@ -164,7 +248,7 @@
                 keep="true"
                 destdir="${basedir}/build/classes"
                 package="client"
-                wsdl="http://${service.hostCar}:${service.portCar}/${service.nameCar}/service?wsdl">
+                wsdl="http://${service.hostMiddleware}:${service.portMiddleware}/${service.nameMiddleware}/service?wsdl">
         </wsimport>
     </target>
 
@@ -184,15 +268,9 @@
                 <path refid="jaxws.classpath"/>
                 <pathelement location="${basedir}/build/classes"/>
             </classpath>
-            <arg value="${service.nameCar}"/>
-            <arg value="${service.hostCar}"/>
-            <arg value="${service.portCar}"/>
-        	<arg value="${service.nameFlight}"/>
-            <arg value="${service.hostFlight}"/>
-            <arg value="${service.portFlight}"/>
-        	<arg value="${service.nameRoom}"/>
-            <arg value="${service.hostRoom}"/>
-            <arg value="${service.portRoom}"/>
+            <arg value="${service.nameMiddleware}"/>
+            <arg value="${service.hostMiddleware}"/>
+        	<arg value="${service.portMiddleware}"/>
         </java>
     </target>
 

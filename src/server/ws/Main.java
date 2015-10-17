@@ -28,8 +28,6 @@ public class Main {
         tomcat.getHost().setDeployOnStartup(true);
         tomcat.getHost().setAutoDeploy(true);
 
-        //tomcat.addWebapp("", new File(deployDir).getAbsolutePath());
-
         tomcat.addWebapp("/" + serviceName, 
                 new File(deployDir + "/" + serviceName).getAbsolutePath());
 
