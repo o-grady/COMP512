@@ -103,7 +103,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				numSeats = getInt(arguments.elementAt(3));
 				flightPrice = getInt(arguments.elementAt(4));
 
-				if (WSMiddleware.proxyFlight.addFlight(id, flightNumber,
+				if (proxyFlight.addFlight(id, flightNumber,
 						numSeats, flightPrice))
 					ret = ret + "\n" + ("Flight added");
 				else
@@ -161,7 +161,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				numRooms = getInt(arguments.elementAt(3));
 				price = getInt(arguments.elementAt(4));
 
-				if (WSMiddleware.proxyRoom.addRooms(id, location, numRooms,
+				if (proxyRoom.addRooms(id, location, numRooms,
 						price))
 					ret = ret + "\n" + ("rooms added");
 				else
@@ -182,9 +182,9 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 					+ arguments.elementAt(1));
 			try {
 				id = getInt(arguments.elementAt(1));
-				int customer = WSMiddleware.proxyCar.newCustomer(id);
-				WSMiddleware.proxyFlight.newCustomer(id);
-				WSMiddleware.proxyRoom.newCustomer(id);
+				int customer = proxyCar.newCustomer(id);
+				proxyFlight.newCustomer(id);
+				proxyRoom.newCustomer(id);
 				ret = ret + "\n" + ("new customer id: " + customer);
 			} catch (Exception e) {
 				ret = ret + "\n" + ("EXCEPTION: ");
@@ -205,7 +205,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				id = getInt(arguments.elementAt(1));
 				flightNumber = getInt(arguments.elementAt(2));
 
-				if (WSMiddleware.proxyFlight.deleteFlight(id, flightNumber))
+				if (proxyFlight.deleteFlight(id, flightNumber))
 					ret = ret + "\n" + ("Flight Deleted");
 				else
 					ret = ret + "\n" + ("Flight could not be deleted");
@@ -229,7 +229,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				id = getInt(arguments.elementAt(1));
 				location = getString(arguments.elementAt(2));
 
-				if (WSMiddleware.proxyCar.deleteCars(id, location))
+				if (proxyCar.deleteCars(id, location))
 					ret = ret + "\n" + ("cars Deleted");
 				else
 					ret = ret + "\n" + ("cars could not be deleted");
@@ -253,7 +253,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				id = getInt(arguments.elementAt(1));
 				location = getString(arguments.elementAt(2));
 
-				if (WSMiddleware.proxyRoom.deleteRooms(id, location))
+				if (proxyRoom.deleteRooms(id, location))
 					ret = ret + "\n" + ("rooms Deleted");
 				else
 					ret = ret + "\n" + ("rooms could not be deleted");
@@ -276,9 +276,9 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 			try {
 				id = getInt(arguments.elementAt(1));
 				int customer = getInt(arguments.elementAt(2));
-				WSMiddleware.proxyCar.deleteCustomer(id, customer);
-				WSMiddleware.proxyFlight.deleteCustomer(id, customer);
-				if (WSMiddleware.proxyRoom.deleteCustomer(id, customer))
+				proxyCar.deleteCustomer(id, customer);
+				proxyFlight.deleteCustomer(id, customer);
+				if (proxyRoom.deleteCustomer(id, customer))
 					ret = ret + "\n" + ("Customer Deleted");
 				else
 					ret = ret + "\n" + ("Customer could not be deleted");
@@ -300,7 +300,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 			try {
 				id = getInt(arguments.elementAt(1));
 				flightNumber = getInt(arguments.elementAt(2));
-				int seats = WSMiddleware.proxyFlight.queryFlight(id,
+				int seats = proxyFlight.queryFlight(id,
 						flightNumber);
 				ret = ret + "\n" + ("Number of seats available: " + seats);
 			} catch (Exception e) {
@@ -322,7 +322,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				id = getInt(arguments.elementAt(1));
 				location = getString(arguments.elementAt(2));
 
-				numCars = WSMiddleware.proxyCar.queryCars(id, location);
+				numCars = proxyCar.queryCars(id, location);
 				ret = ret + "\n" + ("number of cars at this location: "
 						+ numCars);
 			} catch (Exception e) {
@@ -344,7 +344,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				id = getInt(arguments.elementAt(1));
 				location = getString(arguments.elementAt(2));
 
-				numRooms = WSMiddleware.proxyRoom.queryRooms(id, location);
+				numRooms = proxyRoom.queryRooms(id, location);
 				ret = ret + "\n" + ("number of rooms at this location: "
 						+ numRooms);
 			} catch (Exception e) {
@@ -366,11 +366,11 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				id = getInt(arguments.elementAt(1));
 				int customer = getInt(arguments.elementAt(2));
 
-				String bill = WSMiddleware.proxyCar.queryCustomerInfo(id,
+				String bill = proxyCar.queryCustomerInfo(id,
 						customer);
-				bill += WSMiddleware.proxyFlight
+				bill += proxyFlight
 						.queryCustomerInfo(id, customer);
-				bill += WSMiddleware.proxyRoom.queryCustomerInfo(id, customer);
+				bill += proxyRoom.queryCustomerInfo(id, customer);
 				ret = ret + "\n" + ("Customer info: " + bill);
 			} catch (Exception e) {
 				ret = ret + "\n" + ("EXCEPTION: ");
@@ -391,7 +391,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				id = getInt(arguments.elementAt(1));
 				flightNumber = getInt(arguments.elementAt(2));
 
-				price = WSMiddleware.proxyFlight.queryFlightPrice(id,
+				price = proxyFlight.queryFlightPrice(id,
 						flightNumber);
 				ret = ret + "\n" + ("Price of a seat: " + price);
 			} catch (Exception e) {
@@ -413,7 +413,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				id = getInt(arguments.elementAt(1));
 				location = getString(arguments.elementAt(2));
 
-				price = WSMiddleware.proxyCar.queryCarsPrice(id, location);
+				price = proxyCar.queryCarsPrice(id, location);
 				ret = ret + "\n" + ("Price of a car at this location: " + price);
 			} catch (Exception e) {
 				ret = ret + "\n" + ("EXCEPTION: ");
@@ -434,7 +434,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				id = getInt(arguments.elementAt(1));
 				location = getString(arguments.elementAt(2));
 
-				price = WSMiddleware.proxyRoom.queryRoomsPrice(id, location);
+				price = proxyRoom.queryRoomsPrice(id, location);
 				ret = ret + "\n" + ("Price of rooms at this location: " + price);
 			} catch (Exception e) {
 				ret = ret + "\n" + ("EXCEPTION: ");
@@ -457,7 +457,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				int customer = getInt(arguments.elementAt(2));
 				flightNumber = getInt(arguments.elementAt(3));
 
-				if (WSMiddleware.proxyFlight.reserveFlight(id, customer,
+				if (proxyFlight.reserveFlight(id, customer,
 						flightNumber))
 					ret = ret + "\n" + ("Flight Reserved");
 				else
@@ -483,7 +483,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				int customer = getInt(arguments.elementAt(2));
 				location = getString(arguments.elementAt(3));
 
-				if (WSMiddleware.proxyCar.reserveCar(id, customer, location))
+				if (proxyCar.reserveCar(id, customer, location))
 					ret = ret + "\n" + ("car Reserved");
 				else
 					ret = ret + "\n" + ("car could not be reserved.");
@@ -508,7 +508,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				int customer = getInt(arguments.elementAt(2));
 				location = getString(arguments.elementAt(3));
 
-				if (WSMiddleware.proxyRoom.reserveRoom(id, customer, location))
+				if (proxyRoom.reserveRoom(id, customer, location))
 					ret = ret + "\n" + ("room Reserved");
 				else
 					ret = ret + "\n" + ("room could not be reserved.");
@@ -546,7 +546,7 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 				car = getBoolean(arguments.elementAt(arguments.size() - 2));
 				room = getBoolean(arguments.elementAt(arguments.size() - 1));
 
-				if (WSMiddleware.proxyCar.reserveItinerary(id, customer,
+				if (proxyCar.reserveItinerary(id, customer,
 						flightNumbers, location, car, room))
 					ret = ret + "\n" + ("Itinerary Reserved");
 				else
@@ -577,9 +577,9 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 			try {
 				id = getInt(arguments.elementAt(1));
 				int customer = getInt(arguments.elementAt(2));
-				WSMiddleware.proxyFlight.newCustomerId(id, customer);
-				WSMiddleware.proxyRoom.newCustomerId(id, customer);
-				boolean c = WSMiddleware.proxyCar.newCustomerId(id, customer);
+				proxyFlight.newCustomerId(id, customer);
+				proxyRoom.newCustomerId(id, customer);
+				boolean c = proxyCar.newCustomerId(id, customer);
 				ret = ret + "\n" + ("new customer id: " + customer);
 			} catch (Exception e) {
 				ret = ret + "\n" + ("EXCEPTION: ");

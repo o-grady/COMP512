@@ -67,7 +67,7 @@
         </annotationProcessing>
     </target>
 
-    <target name="create-war">
+    <target name="create-war-car">
         <war 
             warfile="${basedir}/build/war/${service.nameCar}.war" 
             webxml="etc/web.xml">
@@ -78,6 +78,8 @@
                     prefix="WEB-INF/wsdl"/>
             <classes dir="${basedir}/build/classes"/>
         </war>
+    </target>
+    <target name="create-war-flight">
         <war 
             warfile="${basedir}/build/war/${service.nameFlight}.war" 
             webxml="etc/web.xml">
@@ -88,82 +90,93 @@
                     prefix="WEB-INF/wsdl"/>
             <classes dir="${basedir}/build/classes"/>
         </war>
-                <war 
-                    warfile="${basedir}/build/war/${service.nameRoom}.war" 
-                    webxml="etc/web.xml">
-                    <webinf dir="${basedir}/etc" includes="sun-jaxws.xml"/>
-                    <zipfileset
-                            dir="${basedir}/etc"
-                            includes="*.wsdl, *.xsd"
-                            prefix="WEB-INF/wsdl"/>
-                    <classes dir="${basedir}/build/classes"/>
-        </war>
     </target>
-
-    <target name="deploy-war">
+	<target name="create-war-room">
+        <war 
+            warfile="${basedir}/build/war/${service.nameRoom}.war" 
+            webxml="etc/web.xml">
+            <webinf dir="${basedir}/etc" includes="sun-jaxws.xml"/>
+            <zipfileset
+                    dir="${basedir}/etc"
+                    includes="*.wsdl, *.xsd"
+                    prefix="WEB-INF/wsdl"/>
+            <classes dir="${basedir}/build/classes"/>
+        </war>
+	</target>
+	
+    <target name="deploy-war-car" depends="create-war-car">
         <delete dir="${basedir}/webapps/${service.nameCar}" 
             includeEmptyDirs="true"/>
         <mkdir dir="${basedir}/webapps/${service.nameCar}"/>        
         <unzip 
             src="${basedir}/build/war/${service.nameCar}.war"
             dest="${basedir}/webapps/${service.nameCar}"/>
-    	
+    </target>
+	
+    <target name="deploy-war-flight" depends="create-war-flight">
         <delete dir="${basedir}/webapps/${service.nameFlight}" 
             includeEmptyDirs="true"/>
         <mkdir dir="${basedir}/webapps/${service.nameFlight}"/>        
         <unzip 
             src="${basedir}/build/war/${service.nameFlight}.war"
             dest="${basedir}/webapps/${service.nameFlight}"/>
-    	
+    </target>
+	
+	<target name="deploy-war-room" depends="create-war-room">
         <delete dir="${basedir}/webapps/${service.nameRoom}" 
             includeEmptyDirs="true"/>
         <mkdir dir="${basedir}/webapps/${service.nameRoom}"/>        
         <unzip 
             src="${basedir}/build/war/${service.nameRoom}.war"
             dest="${basedir}/webapps/${service.nameRoom}"/>
-    </target>
-    
-    <target name="start-tomcat">
-		<parallel>
-	        <java fork="true" classname="server.ws.Main">
-	            <classpath>
-	                <path refid="jaxws.classpath"/>
-	                <pathelement location="${basedir}/build/classes"/>
-	            </classpath>
-	            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
-	            <arg value="${service.nameCar}"/>
-	            <arg value="${service.portCar}"/>
-	            <arg value="${basedir}/webapps"/>
-	        </java>
-	        <java fork="true" classname="server.ws.Main">
-	            <classpath>
-	                <path refid="jaxws.classpath"/>
-	                <pathelement location="${basedir}/build/classes"/>
-	            </classpath>
-	            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
-	            <arg value="${service.nameFlight}"/>
-	            <arg value="${service.portFlight}"/>
-	            <arg value="${basedir}/webapps"/>
-	        </java>
-	        <java fork="true" classname="server.ws.Main">
-	            <classpath>
-	                <path refid="jaxws.classpath"/>
-	                <pathelement location="${basedir}/build/classes"/>
-	            </classpath>
-	            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
-	            <arg value="${service.nameRoom}"/>
-	            <arg value="${service.portRoom}"/>
-	            <arg value="${basedir}/webapps"/>
-	        </java>
-		</parallel>
-    </target>
-
-    <target name="server" depends="setup">
-        <antcall target="clean"/>
+	</target>
+	
+    <target name="start-tomcat-car" depends="deploy-war-car">
         <antcall target="build-server"/>
-        <antcall target="create-war"/>
-        <antcall target="deploy-war"/>
-        <antcall target="start-tomcat"/>        
+        <java fork="true" classname="server.ws.Main">
+            <classpath>
+                <path refid="jaxws.classpath"/>
+                <pathelement location="${basedir}/build/classes"/>
+            </classpath>
+            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
+            <arg value="${service.nameCar}"/>
+            <arg value="${service.portCar}"/>
+            <arg value="${basedir}/webapps"/>
+        </java>
+    </target>
+	<target name="start-tomcat-flight" depends="deploy-war-flight">
+        <antcall target="build-server"/>
+        <java fork="true" classname="server.ws.Main">
+            <classpath>
+                <path refid="jaxws.classpath"/>
+                <pathelement location="${basedir}/build/classes"/>
+            </classpath>
+            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
+            <arg value="${service.nameFlight}"/>
+            <arg value="${service.portFlight}"/>
+            <arg value="${basedir}/webapps"/>
+        </java>
+	</target>
+	<target name="start-tomcat-room" depends="deploy-war-room">
+        <antcall target="build-server"/>
+        <java fork="true" classname="server.ws.Main">
+            <classpath>
+                <path refid="jaxws.classpath"/>
+                <pathelement location="${basedir}/build/classes"/>
+            </classpath>
+            <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
+            <arg value="${service.nameRoom}"/>
+            <arg value="${service.portRoom}"/>
+            <arg value="${basedir}/webapps"/>
+        </java>
+	</target>
+	
+    <target name="start-tomcat-all" depends="setup">
+    	<parallel>
+    	    <antcall target="start-tomcat-car"/>   
+    	    <antcall target="start-tomcat-flight"/>   
+        	<antcall target="start-tomcat-room"/>   
+    	</parallel>      
     </target>
 	
     <target name="generate-middleware" depends="setup">
