@@ -1,4 +1,4 @@
-package middleware;
+package middlewaremain;
 
 import java.util.*;
 import java.io.*;
@@ -6,22 +6,22 @@ import java.io.*;
 import org.apache.catalina.startup.Tomcat;
 
 
-public class Middleware extends WSMiddleware {
+public class Middleware {
 
     public Middleware(String serviceNameCar, String serviceHostCar, int servicePortCar, 
     		String serviceNameFlight, String serviceHostFlight, int servicePortFlight, 
     		String serviceNameRoom, String serviceHostRoom, int servicePortRoom) 
     throws Exception {
-        super(serviceNameCar, serviceHostCar, servicePortCar, 
+        /*super(serviceNameCar, serviceHostCar, servicePortCar, 
         		serviceNameFlight, serviceHostFlight,servicePortFlight, 
-        		serviceNameRoom, serviceHostRoom, servicePortRoom) ;
+        		serviceNameRoom, serviceHostRoom, servicePortRoom) ;*/
     }
     
     public static void main(String[] args) {
         
         try {        
             if (args.length != 12) {
-                System.out.println("Usage: MyClient " 
+                System.out.println("Usage: Middleware " 
                         + "<service-name-car> <service-host-car> <service-port-car>" 
                         + "<service-name-flight> <service-host-flight> <service-port-flight>"
                         + "<service-name-room> <service-host-room> <service-port-room>"
@@ -47,7 +47,7 @@ public class Middleware extends WSMiddleware {
             		serviceNameFlight, serviceHostFlight,servicePortFlight, 
             		serviceNameRoom, serviceHostRoom, servicePortRoom) ;*/
             		
-            MiddlewareImpl.setupProxies(serviceNameCar, serviceHostCar, servicePortCar, serviceNameFlight, serviceHostFlight, servicePortFlight, serviceNameRoom, serviceHostRoom, servicePortRoom);
+            //MiddlewareImpl.setupProxies(serviceNameCar, serviceHostCar, servicePortCar, serviceNameFlight, serviceHostFlight, servicePortFlight, serviceNameRoom, serviceHostRoom, servicePortRoom);
             
             String serviceName = args[9];
             int port = Integer.parseInt(args[10]);

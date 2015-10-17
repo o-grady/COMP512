@@ -3,6 +3,9 @@ package middleware;
 import java.net.URL;
 import java.net.MalformedURLException;
 
+import middleware.ResourceManager;
+import middleware.ResourceManagerImplService;
+
 public class WSMiddleware {
 
     

@@ -9,15 +9,23 @@ import javax.jws.WebService;
 @WebService(endpointInterface = "middleware.MiddlewareInterface")
 public class MiddlewareImpl implements middleware.MiddlewareInterface {
 	
-    private static ResourceManager proxyCar;
-    private static ResourceManager proxyFlight;
-    private static ResourceManager proxyRoom;
+    private ResourceManager proxyCar;
+    private ResourceManager proxyFlight;
+    private ResourceManager proxyRoom;
 
 	public MiddlewareImpl() {
 		// TODO Auto-generated constructor stub
+		try {
+			this.setupProxies(
+					"rmCar", "localhost", 8080, 
+					"rmFlight", "localhost", 8081, 
+					"rmRoom", "localhost", 8082);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 	
-	public static void setupProxies(String serviceNameCar, String serviceHostCar, int servicePortCar, 
+	public void setupProxies(String serviceNameCar, String serviceHostCar, int servicePortCar, 
     		String serviceNameFlight, String serviceHostFlight, int servicePortFlight, 
     		String serviceNameRoom, String serviceHostRoom, int servicePortRoom) throws MalformedURLException {
 	    

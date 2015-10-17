@@ -41,6 +41,14 @@
         <classpath refid="jaxws.classpath"/>
     </taskdef>
 
+    <target name="build-middlewaremain" >
+        <javac
+                srcdir="${basedir}/src/middlewaremain"
+                destdir="${basedir}/build">
+        	<classpath refid="jaxws.classpath"/>
+        </javac>
+    </target>
+	
     <target name="build-server" depends="setup">
         <annotationProcessing
                 fork="true"
@@ -208,11 +216,11 @@
             dest="${basedir}/webapps/${service.nameMiddleware}"/>
     </target>
     
-    <target name="start-tomcat-middleware">
-        <java fork="true" classname="middleware.Middleware">
+    <target name="start-tomcat-middleware" depends="build-middlewaremain" >
+        <java fork="true" classname="middlewaremain.Middleware">
             <classpath>
                 <path refid="jaxws.classpath"/>
-                <pathelement location="${basedir}/build/classes"/>
+                <pathelement location="${basedir}/build"/>
             </classpath>
             <jvmarg value="-Djava.security.policy=${basedir}/etc/server.policy"/>
             <arg value="${service.nameCar}"/>
