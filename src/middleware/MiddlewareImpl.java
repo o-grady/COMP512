@@ -2,6 +2,8 @@ package middleware;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 import javax.jws.WebService;
@@ -16,10 +18,15 @@ public class MiddlewareImpl implements middleware.MiddlewareInterface {
 	public MiddlewareImpl() {
 		// TODO Auto-generated constructor stub
 		try {
+			String content = new String(Files.readAllBytes(Paths.get("setup.txt")));
+			String[] setupParams = content.split(",");
+			System.out.println(setupParams[0] + setupParams[1] +(setupParams[2]) +
+					setupParams[3] + setupParams[4] +(setupParams[5]) +
+					setupParams[6] + setupParams[7] + (setupParams[8]));
 			this.setupProxies(
-					"rmCar", "localhost", 8080, 
-					"rmFlight", "localhost", 8081, 
-					"rmRoom", "localhost", 8082);
+					setupParams[0], setupParams[1], Integer.parseInt(setupParams[2].trim()),
+					setupParams[3], setupParams[4], Integer.parseInt(setupParams[5].trim()),
+					setupParams[6], setupParams[7], Integer.parseInt(setupParams[8].trim()));
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
