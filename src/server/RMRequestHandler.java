@@ -119,6 +119,18 @@ public class RMRequestHandler implements IRequestHandler {
 			// Integer.parseInt(request[3]), Integer.parseInt(request[4]));
 			// outToClient.writeBytes("ITINERARY received");
 			break;
+		case STARTTXN:
+            System.out.println("STARTTXN received");
+            break;
+	    case COMMIT:
+            System.out.println("COMMIT received");
+            break;
+	    case ABORT:
+            System.out.println("ABORT received");
+            break;
+	    case SHUTDOWN:
+            System.out.println("SHUTDOWN received");
+            break;
 		}
 		if(stringResponse != null){
 			return new ResponseDescriptor(stringResponse);

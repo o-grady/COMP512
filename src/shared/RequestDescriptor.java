@@ -18,6 +18,7 @@ public class RequestDescriptor implements Serializable {
     public int numCars;
     public String location;
     public int customerNumber;
+    public int transactionID;
     public Vector<Integer> flightNumbers;
 	
 	public RequestDescriptor(RequestType requestType) {

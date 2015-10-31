@@ -20,5 +20,9 @@ public enum RequestType {
     RESERVECAR,
     RESERVEROOM,
     ITINERARY,
-    NEWCUSTOMERID
+    NEWCUSTOMERID,
+    STARTTXN,
+    COMMIT,
+    ABORT,
+    SHUTDOWN
 }
