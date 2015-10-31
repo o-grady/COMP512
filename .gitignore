@@ -1,2 +1,4 @@
 /webapps/
+/bin
+/build
 *.class
