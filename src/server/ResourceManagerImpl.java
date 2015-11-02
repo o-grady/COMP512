@@ -5,11 +5,17 @@
 
 package server;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.nio.file.Paths;
 import java.util.*;
-import javax.jws.WebService;
 
 
-@WebService(endpointInterface = "server.ws.ResourceManager")
 public class ResourceManagerImpl implements server.ResourceManager {
     
     protected RMHashtable m_itemHT = new RMHashtable();
@@ -436,4 +442,45 @@ public class ResourceManagerImpl implements server.ResourceManager {
         return false;
     }
 
+	@Override
+	public boolean writeDataToFile(String fileName, String path) {
+		FileOutputStream fileOut = null;
+		ObjectOutputStream objectOut = null;
+		File outputFile = Paths.get(path, fileName).toFile();
+		if(outputFile == null){
+			return false;
+		}
+		try {
+			fileOut = new FileOutputStream(outputFile);
+			objectOut = new ObjectOutputStream(fileOut);
+			objectOut.writeObject(m_itemHT);
+			objectOut.close();
+			fileOut.close();
+			return true;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	@Override
+	public boolean readOldStateFromFile(String fileName, String path) {
+		FileInputStream fileIn = null;
+		ObjectInputStream objectIn = null;
+		File inputFile = Paths.get(path, fileName).toFile();
+		if(inputFile == null){
+			return false;
+		}
+		try {
+			fileIn = new FileInputStream(inputFile);
+			objectIn = new ObjectInputStream(fileIn);
+			m_itemHT = (RMHashtable) objectIn.readObject();
+			objectIn.close();
+			fileIn.close();
+			return true;
+		} catch (IOException | ClassNotFoundException e) {
+			e.printStackTrace();
+			return false;
+		} 
+	}
 }

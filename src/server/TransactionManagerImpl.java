@@ -1,5 +1,11 @@
 package server;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -7,23 +13,39 @@ import shared.LockManager.DeadlockException;
 import shared.LockManager.LockManager;
 
 public class TransactionManagerImpl implements TransactionManager {
-	
-	ResourceManager rm;
+	public ResourceManager rm;
 	//lock data using following scheme: (flight|car|room|customer) + ID
 	LockManager lm;
     Set<Integer> activeTransactions;
 	int transactionCounter;
+	String transactionLocation;
 	
-	public TransactionManagerImpl(ResourceManager rm, LockManager lm){
+	public static void main(String args[]){
+		TransactionManager tm = new TransactionManagerImpl(new ResourceManagerImpl(), new LockManager(), 1);
+		int txnID1 = tm.startTransaction();
+		int txnID2 = tm.startTransaction();
+		System.out.println("Query Cars txn1:" + tm.queryCars(1, "1", txnID1));
+		System.out.println("Query Cars txn2:" + tm.queryCars(1, "2", txnID2));
+		System.out.println("Add Cars txn1:" + tm.addCars(1, "1", 1, 1, txnID1));
+		System.out.println("Add Cars txn2:" + tm.addCars(1, "2", 1, 1, txnID2));
+		System.out.println("Commit txn1:" + tm.commitTransaction(txnID1));
+		System.out.println("Commit txn2:" + tm.commitTransaction(txnID2));
+	}
+	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID){
 		this.rm = rm;
 		this.lm = lm;
-		activeTransactions = new HashSet<Integer>();
-		transactionCounter = 0;
+		this.activeTransactions = new HashSet<Integer>();
+		this.transactionCounter = 0;
+		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID +  "-transactions";
+		Paths.get(this.transactionLocation).toFile().mkdirs();
+		//TODO: Read the most recent commit in folder (if it exists) and use that as the RM_Hashtable
 	}
 	
 	@Override
 	public int startTransaction() {
 		transactionCounter++;
+		String fileName = "" + transactionCounter;
+		rm.writeDataToFile(fileName, transactionLocation);
 		activeTransactions.add(transactionCounter);
 		return transactionCounter;
 	}
@@ -33,6 +55,12 @@ public class TransactionManagerImpl implements TransactionManager {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
 			return false;
+		}
+		Path p = Paths.get(transactionLocation, ""+transactionID);
+		try {
+			Files.delete(p);
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 		lm.UnlockAll(transactionID);
 		activeTransactions.remove(transactionID);
@@ -45,6 +73,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return false;
 		}
 		//TODO: Revert all changes made in transaction so far, need to save old state somewhere as well to do this
+		rm.readOldStateFromFile(""+transactionID, transactionLocation);
 		lm.UnlockAll(transactionID);
 		activeTransactions.remove(transactionID);
 		return true;
@@ -57,7 +86,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return false;
 		}
 		try {
-			lm.Lock(transactionID, "flight"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
 			return rm.addFlight(id, flightNumber, numSeats, flightPrice);
 		} catch (DeadlockException e) {
 			System.out.println("addFlight failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -75,7 +104,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return false;
 		}
 		try {
-			lm.Lock(transactionID, "flight"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
 			return rm.deleteFlight(id, flightNumber);
 		} catch (DeadlockException e) {
 			System.out.println("deleteFlight failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -93,7 +122,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return -1;
 		}
 		try {
-			lm.Lock(transactionID, "flight"+id, LockManager.READ);
+			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
 			return rm.queryFlight(id, flightNumber);
 		} catch (DeadlockException e) {
 			System.out.println("queryFlight failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);
@@ -111,7 +140,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return -1;
 		}
 		try {
-			lm.Lock(transactionID, "flight"+id, LockManager.READ);
+			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
 			return rm.queryFlightPrice(id, flightNumber);
 		} catch (DeadlockException e) {
 			System.out.println("queryFlightPrice failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);
@@ -129,7 +158,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return false;
 		}
 		try {
-			lm.Lock(transactionID, "car"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
 			return rm.addCars(id, location, numCars, carPrice);
 		} catch (DeadlockException e) {
 			System.out.println("addCars failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -147,7 +176,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return false;
 		}
 		try {
-			lm.Lock(transactionID, "car"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
 			return rm.deleteCars(id, location);
 		} catch (DeadlockException e) {
 			System.out.println("deleteCars failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -165,7 +194,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return -1;
 		}
 		try {
-			lm.Lock(transactionID, "car"+id, LockManager.READ);
+			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
 			return rm.queryCars(id, location);
 		} catch (DeadlockException e) {
 			System.out.println("queryCars failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);
@@ -183,7 +212,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return -1;
 		}
 		try {
-			lm.Lock(transactionID, "car"+id, LockManager.READ);
+			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
 			return rm.queryCarsPrice(id, location);
 		} catch (DeadlockException e) {
 			System.out.println("queryCarsPrice failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);
@@ -201,7 +230,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return false;
 		}
 		try {
-			lm.Lock(transactionID, "room"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
 			return rm.addRooms(id, location, numRooms, roomPrice);
 		} catch (DeadlockException e) {
 			System.out.println("addRooms failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -219,7 +248,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return false;
 		}
 		try {
-			lm.Lock(transactionID, "room"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
 			return rm.deleteRooms(id, location);
 		} catch (DeadlockException e) {
 			System.out.println("deleteRooms failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -237,7 +266,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return -1;
 		}
 		try {
-			lm.Lock(transactionID, "room"+id, LockManager.READ);
+			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
 			return rm.queryRooms(id, location);
 		} catch (DeadlockException e) {
 			System.out.println("queryRooms failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -255,7 +284,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return -1;
 		}
 		try {
-			lm.Lock(transactionID, "room"+id, LockManager.READ);
+			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
 			return rm.queryRoomsPrice(id, location);
 		} catch (DeadlockException e) {
 			System.out.println("queryRoomPrice failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -273,7 +302,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			return -1;
 		}
 		try {
-			lm.Lock(transactionID, "customer"+id, LockManager.WRITE);
+			//No RMHashtable key associated with new customer. Instead lock string "newcustomer"
+			lm.Lock(transactionID, "newcustomer", LockManager.WRITE);
 			return rm.newCustomer(id);
 		} catch (DeadlockException e) {
 			System.out.println("newCustomer failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -291,7 +321,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			return false;
 		}
 		try {
-			lm.Lock(transactionID, "customer"+id, LockManager.WRITE);
+			//No RMHashtable key associated with new customer. Instead lock string "newcustomer"
+			lm.Lock(transactionID, "newcustomer", LockManager.WRITE);
 			return rm.newCustomerId(id, customerNumber);
 		} catch (DeadlockException e) {
 			System.out.println("newCustomerID failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -309,7 +340,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return false;
 		}
 		try {
-			lm.Lock(transactionID, "customer"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
 			return rm.deleteCustomer(id, customerNumber);
 		} catch (DeadlockException e) {
 			System.out.println("deleteCustomer failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -327,7 +358,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			return null;
 		}
 		try {
-			lm.Lock(transactionID, "customer"+id, LockManager.READ);
+			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.READ);
 			return rm.queryCustomerInfo(id, customerNumber);
 		} catch (DeadlockException e) {
 			System.out.println("queryCustomerInfo failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);

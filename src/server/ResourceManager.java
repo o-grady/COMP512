@@ -116,4 +116,8 @@ public interface ResourceManager {
     public boolean reserveItinerary(int id, int customerNumber, Vector flightNumbers, 
                                     String location, boolean car, boolean room);
     			
+    /* Write data to file */
+    public boolean writeDataToFile(String fileName, String path);
+    
+    public boolean readOldStateFromFile(String fileName, String path);
 }
