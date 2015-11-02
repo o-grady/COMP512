@@ -10,7 +10,7 @@ public interface TransactionManager {
 	public boolean abortTransaction(int transactionID);
 	
 	//RM methods, with additional transactionID. These methods will call the RM methods and aquire the correct locks
-    public boolean addFlight(int id, int flightNumber, int numSeats, int flightPrice); 
+    public boolean addFlight(int id, int flightNumber, int numSeats, int flightPrice, int transactionID); 
 
 
     public boolean deleteFlight(int id, int flightNumber, int transactionID); 
