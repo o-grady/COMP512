@@ -37,16 +37,11 @@ public class TransactionManagerImpl implements TransactionManager {
 		System.out.println("Commit txn3:" + tm.commitTransaction(txnID3));
 		System.out.println("Commit txn4:" + tm.commitTransaction(txnID4));
 	}
-	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID){
-		this.rm = rm;
-		this.lm = lm;
-		this.activeTransactions = new HashSet<Integer>();
-		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID +  "-transactions";
+	private int getMostRecentCommitNumber(){
+		int largestTxn = 0;
 		File txnFolder = Paths.get(this.transactionLocation).toFile();
 		//Make folder if it does not exist
-		txnFolder.mkdirs();
 		File[] filesInTxnFolder =  txnFolder.listFiles();
-		int largestTxn = 0;
 		//Find the most recent commit
 		for(int i = 0 ; i < filesInTxnFolder.length ; i++){
 			if(filesInTxnFolder[i].isFile()){
@@ -59,13 +54,23 @@ public class TransactionManagerImpl implements TransactionManager {
 				}
 			}
 		}
-		this.transactionCounter = largestTxn;
+		return largestTxn;
+	}
+	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID){
+		this.rm = rm;
+		this.lm = lm;
+		this.activeTransactions = new HashSet<Integer>();
+		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID +  "-transactions";
+		File txnFolder = Paths.get(this.transactionLocation).toFile();
+		//Make folder if it does not exist
+		txnFolder.mkdirs();
+		this.transactionCounter = getMostRecentCommitNumber();
 		System.out.println("TransactionCounter initialized to" + transactionCounter);
 		rm.readOldStateFromFile("commitedTxn"+transactionCounter, transactionLocation);
 	}
 	
 	@Override
-	public int startTransaction() {
+	public synchronized int startTransaction() {
 		transactionCounter++;
 		String fileName = "oldState_txn" + transactionCounter;
 		rm.writeDataToFile(fileName, transactionLocation);
@@ -74,7 +79,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 
 	@Override
-	public boolean commitTransaction(int transactionID) {
+	public synchronized boolean commitTransaction(int transactionID) {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
 			return false;
@@ -103,12 +108,17 @@ public class TransactionManagerImpl implements TransactionManager {
 		return true;
 	}
 	@Override
-	public boolean abortTransaction(int transactionID) {
+	public synchronized boolean abortTransaction(int transactionID) {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
 			return false;
 		}
-		rm.readOldStateFromFile("oldState_txn"+transactionID, transactionLocation);
+		int mostRecentCommit = getMostRecentCommitNumber();
+		if(transactionID > mostRecentCommit){
+			rm.readOldStateFromFile("oldState_txn"+transactionID, transactionLocation);
+		}else{
+			rm.readOldStateFromFile("commitedTxn", transactionLocation);
+		}
 		Path p = Paths.get(transactionLocation, "oldState_txn"+transactionID);
 		//Remove Old State
 		try {
