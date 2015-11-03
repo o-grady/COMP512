@@ -134,7 +134,12 @@ public class TMRequestHandler implements IRequestHandler {
             break;
 	    case SHUTDOWN:
             System.out.println("SHUTDOWN received");
-            //TODO: Implement this
+            boolResponse = tm.abortAllActiveTransactions();
+            //shutdown if abortAll worked
+            if(boolResponse){
+            	System.exit(0);
+            }
+            
             break;
 		}
 		if(stringResponse != null){

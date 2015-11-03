@@ -19,7 +19,6 @@ public class TestClient {
 		try {
 			middlewareConnection = new ServerConnection(args[0], Integer.parseInt(args[1]));
 		} catch (NumberFormatException | IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		RequestDescriptor r;

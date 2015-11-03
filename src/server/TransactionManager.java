@@ -8,7 +8,9 @@ public interface TransactionManager {
 	public boolean commitTransaction(int transactionID);
 	
 	public boolean abortTransaction(int transactionID);
-	
+
+	public boolean abortAllActiveTransactions(); 
+
 	//RM methods, with additional transactionID. These methods will call the RM methods and aquire the correct locks
     public boolean addFlight(int id, int flightNumber, int numSeats, int flightPrice, int transactionID); 
 
@@ -84,6 +86,8 @@ public interface TransactionManager {
     public boolean reserveCar(int id, int customerNumber, String location, int transactionID); 
 
     /* Reserve a room at this location. */    
-    public boolean reserveRoom(int id, int customerNumber, String location, int transactionID); 
+    public boolean reserveRoom(int id, int customerNumber, String location, int transactionID);
+
+
 
 }

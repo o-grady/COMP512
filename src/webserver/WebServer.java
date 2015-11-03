@@ -34,7 +34,6 @@ public class WebServer {
 		try {
 			server = HttpServer.create(new InetSocketAddress(8000), 0);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
         server.createContext("/", new StaticFileHandler());
@@ -59,7 +58,6 @@ public class WebServer {
 		try {
 			middlewareConnection = new ServerConnection(hostname, Integer.parseInt(port));
 		} catch (NumberFormatException | IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
     }
@@ -188,7 +186,6 @@ public class WebServer {
     						break;
     				}
 				} catch (IllegalArgumentException | IllegalAccessException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
     		}

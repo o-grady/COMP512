@@ -30,21 +30,44 @@ public class TransactionManagerImpl implements TransactionManager {
 		System.out.println("Add Cars txn2:" + tm.addCars(1, "2", 1, 1, txnID2));
 		System.out.println("Commit txn1:" + tm.commitTransaction(txnID1));
 		System.out.println("Commit txn2:" + tm.commitTransaction(txnID2));
+		int txnID3 = tm.startTransaction();
+		int txnID4 = tm.startTransaction();
+		System.out.println("New Customer txn3:" + tm.newCustomer(1, txnID3));
+		System.out.println("New Customer txn4:" + tm.newCustomer(1, txnID4));
+		System.out.println("Commit txn3:" + tm.commitTransaction(txnID3));
+		System.out.println("Commit txn4:" + tm.commitTransaction(txnID4));
 	}
 	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID){
 		this.rm = rm;
 		this.lm = lm;
 		this.activeTransactions = new HashSet<Integer>();
-		this.transactionCounter = 0;
 		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID +  "-transactions";
-		Paths.get(this.transactionLocation).toFile().mkdirs();
-		//TODO: Read the most recent commit in folder (if it exists) and use that as the RM_Hashtable
+		File txnFolder = Paths.get(this.transactionLocation).toFile();
+		//Make folder if it does not exist
+		txnFolder.mkdirs();
+		File[] filesInTxnFolder =  txnFolder.listFiles();
+		int largestTxn = 0;
+		//Find the most recent commit
+		for(int i = 0 ; i < filesInTxnFolder.length ; i++){
+			if(filesInTxnFolder[i].isFile()){
+				if(filesInTxnFolder[i].getName().startsWith("commitedTxn")){
+					String noPrefix = filesInTxnFolder[i].getName().substring("commitedTxn".length());
+					int txnNumber = Integer.parseInt(noPrefix);
+					if( largestTxn < txnNumber){
+						largestTxn = txnNumber;
+					}
+				}
+			}
+		}
+		this.transactionCounter = largestTxn;
+		System.out.println("TransactionCounter initialized to" + transactionCounter);
+		rm.readOldStateFromFile("commitedTxn"+transactionCounter, transactionLocation);
 	}
 	
 	@Override
 	public int startTransaction() {
 		transactionCounter++;
-		String fileName = "" + transactionCounter;
+		String fileName = "oldState_txn" + transactionCounter;
 		rm.writeDataToFile(fileName, transactionLocation);
 		activeTransactions.add(transactionCounter);
 		return transactionCounter;
@@ -56,7 +79,20 @@ public class TransactionManagerImpl implements TransactionManager {
 			//can't perform actions on non-active transaction
 			return false;
 		}
-		Path p = Paths.get(transactionLocation, ""+transactionID);
+		//write new commit
+		if(!rm.writeDataToFile("commitedTxn"+transactionID, transactionLocation)){
+			abortTransaction(transactionID);
+			return false;
+		};
+		//Delete old commited transaction
+		Path p = Paths.get(transactionLocation, "commitedTxn"+(transactionID - 1));
+		try {
+			Files.deleteIfExists(p);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		//Delete old state
+		p = Paths.get(transactionLocation, "oldState_txn"+transactionID);
 		try {
 			Files.delete(p);
 		} catch (IOException e) {
@@ -72,13 +108,26 @@ public class TransactionManagerImpl implements TransactionManager {
 			//can't perform actions on non-active transaction
 			return false;
 		}
-		//TODO: Revert all changes made in transaction so far, need to save old state somewhere as well to do this
-		rm.readOldStateFromFile(""+transactionID, transactionLocation);
+		rm.readOldStateFromFile("oldState_txn"+transactionID, transactionLocation);
+		Path p = Paths.get(transactionLocation, "oldState_txn"+transactionID);
+		//Remove Old State
+		try {
+			Files.delete(p);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		lm.UnlockAll(transactionID);
 		activeTransactions.remove(transactionID);
 		return true;
 	}
-
+	@Override
+	public boolean abortAllActiveTransactions(){
+		Set<Integer> activeTransactionsCopy = new HashSet<Integer>(activeTransactions);
+		for( int transactionID : activeTransactionsCopy){
+			this.abortTransaction(transactionID);
+		}
+		return true;
+	}
 	@Override
 	public boolean addFlight(int id, int flightNumber, int numSeats, int flightPrice, int transactionID) {
 		if(!activeTransactions.contains(transactionID)){
