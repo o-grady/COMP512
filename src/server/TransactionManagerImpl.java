@@ -21,6 +21,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	String transactionLocation;
 	
 	public static void main(String args[]){
+		/*
 		TransactionManager tm = new TransactionManagerImpl(new ResourceManagerImpl(), new LockManager(), 1);
 		int txnID1 = tm.startTransaction();
 		int txnID2 = tm.startTransaction();
@@ -36,6 +37,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		System.out.println("New Customer txn4:" + tm.newCustomer(1, txnID4));
 		System.out.println("Commit txn3:" + tm.commitTransaction(txnID3));
 		System.out.println("Commit txn4:" + tm.commitTransaction(txnID4));
+		*/
 	}
 	private int getMostRecentCommitNumber(){
 		int largestTxn = 0;
@@ -79,7 +81,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 
 	@Override
-	public synchronized boolean commitTransaction(int transactionID) {
+	public synchronized boolean commitTransaction(int transactionID) throws AbortedTransactionException, TransactionNotActiveException{
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
 			return false;
@@ -87,7 +89,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		//write new commit
 		if(!rm.writeDataToFile("commitedTxn"+transactionID, transactionLocation)){
 			abortTransaction(transactionID);
-			return false;
+			throw new AbortedTransactionException();
 		};
 		//Delete old commited transaction
 		Path p = Paths.get(transactionLocation, "commitedTxn"+(transactionID - 1));
@@ -108,7 +110,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		return true;
 	}
 	@Override
-	public synchronized boolean abortTransaction(int transactionID) {
+	public synchronized boolean abortTransaction(int transactionID) throws TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
 			return false;
@@ -134,15 +136,19 @@ public class TransactionManagerImpl implements TransactionManager {
 	public boolean abortAllActiveTransactions(){
 		Set<Integer> activeTransactionsCopy = new HashSet<Integer>(activeTransactions);
 		for( int transactionID : activeTransactionsCopy){
-			this.abortTransaction(transactionID);
+			try {
+				this.abortTransaction(transactionID);
+			} catch (TransactionNotActiveException e) {
+				//This should never hit, only aborting transactions in active set
+			}
 		}
 		return true;
 	}
 	@Override
-	public boolean addFlight(int id, int flightNumber, int numSeats, int flightPrice, int transactionID) {
+	public boolean addFlight(int id, int flightNumber, int numSeats, int flightPrice, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
@@ -151,16 +157,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("addFlight failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public boolean deleteFlight(int id, int flightNumber, int transactionID) {
+	public boolean deleteFlight(int id, int flightNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
@@ -169,16 +174,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("deleteFlight failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public int queryFlight(int id, int flightNumber, int transactionID) {
+	public int queryFlight(int id, int flightNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return -1;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
@@ -187,16 +191,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("queryFlight failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return -1;
 	}
 
 	@Override
-	public int queryFlightPrice(int id, int flightNumber, int transactionID) {
+	public int queryFlightPrice(int id, int flightNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return -1;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
@@ -205,16 +208,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("queryFlightPrice failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return -1;
 	}
 
 	@Override
-	public boolean addCars(int id, String location, int numCars, int carPrice, int transactionID) {
+	public boolean addCars(int id, String location, int numCars, int carPrice, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
@@ -223,16 +225,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("addCars failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public boolean deleteCars(int id, String location, int transactionID) {
+	public boolean deleteCars(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
@@ -241,16 +242,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("deleteCars failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public int queryCars(int id, String location, int transactionID) {
+	public int queryCars(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return -1;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
@@ -259,16 +259,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("queryCars failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return -1;
 	}
 
 	@Override
-	public int queryCarsPrice(int id, String location, int transactionID) {
+	public int queryCarsPrice(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return -1;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
@@ -277,16 +276,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("queryCarsPrice failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return -1;
 	}
 
 	@Override
-	public boolean addRooms(int id, String location, int numRooms, int roomPrice, int transactionID) {
+	public boolean addRooms(int id, String location, int numRooms, int roomPrice, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
@@ -295,16 +293,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("addRooms failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public boolean deleteRooms(int id, String location, int transactionID) {
+	public boolean deleteRooms(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
@@ -313,16 +310,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("deleteRooms failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public int queryRooms(int id, String location, int transactionID) {
+	public int queryRooms(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return -1;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
@@ -331,16 +327,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("queryRooms failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return -1;
 	}
 
 	@Override
-	public int queryRoomsPrice(int id, String location, int transactionID) {
+	public int queryRoomsPrice(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return -1;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
@@ -349,16 +344,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("queryRoomPrice failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return -1;
 	}
 
 	@Override
-	public int newCustomer(int id, int transactionID) {
+	public int newCustomer(int id, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return -1;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			//No RMHashtable key associated with new customer. Instead lock string "newcustomer"
@@ -368,16 +362,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("newCustomer failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return -1;
 	}
 
 	@Override
-	public boolean newCustomerId(int id, int customerNumber, int transactionID) {
+	public boolean newCustomerId(int id, int customerNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			//No RMHashtable key associated with new customer. Instead lock string "newcustomer"
@@ -387,16 +380,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("newCustomerID failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public boolean deleteCustomer(int id, int customerNumber, int transactionID) {
+	public boolean deleteCustomer(int id, int customerNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
@@ -405,16 +397,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("deleteCustomer failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public String queryCustomerInfo(int id, int customerNumber, int transactionID) {
+	public String queryCustomerInfo(int id, int customerNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return null;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.READ);
@@ -423,16 +414,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("queryCustomerInfo failed, could not aquire read lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return null;
 	}
 
 	@Override
-	public boolean reserveFlight(int id, int customerNumber, int flightNumber, int transactionID) {
+	public boolean reserveFlight(int id, int customerNumber, int flightNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, "flight"+id, LockManager.WRITE);
@@ -441,16 +431,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("reserveFlight failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public boolean reserveCar(int id, int customerNumber, String location, int transactionID) {
+	public boolean reserveCar(int id, int customerNumber, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, "car"+id, LockManager.WRITE);
@@ -459,16 +448,15 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("reserveCar failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 	@Override
-	public boolean reserveRoom(int id, int customerNumber, String location, int transactionID) {
+	public boolean reserveRoom(int id, int customerNumber, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
 		if(!activeTransactions.contains(transactionID)){
 			//can't perform actions on non-active transaction
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		try {
 			lm.Lock(transactionID, "room"+id, LockManager.WRITE);
@@ -477,9 +465,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("reserveRoom failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
 			System.out.println("Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
-			e.printStackTrace();
+			throw new AbortedTransactionException();
 		}
-		return false;
 	}
 
 }
