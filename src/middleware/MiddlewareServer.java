@@ -2,27 +2,45 @@ package middleware;
 
 import java.util.Scanner;
 
+import server.ResourceManager;
+import server.ResourceManagerImpl;
+import server.TMRequestHandler;
+import server.TransactionManager;
+import server.TransactionManagerImpl;
+import shared.IRequestHandler;
+import shared.RequestDescriptor;
+import shared.RequestType;
 import shared.ServerConnection;
 import shared.WelcomeManager;
+import shared.LockManager.LockManager;
 
 
 public class MiddlewareServer {
 	
 	private WelcomeManager wm;
 	private ConnectionManager cm;
-	private MiddlewareRequestHandler rh;
+	private IRequestHandler rh;
+	private ResourceManager customerRM;
+	private TransactionManager customerTM;
+	private TMRequestHandler customerTMRH;		
 	private static Scanner scanner;
 
     public MiddlewareServer(int port) {
     	cm = new ConnectionManager();
-    	rh = new MiddlewareRequestHandler(cm);
+    	customerRM = new ResourceManagerImpl();
+    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), 45654);
+    	customerTMRH = new TMRequestHandler(customerTM);    	
+    	rh = new MiddlewareTMRequestHandler(cm, customerTM, customerTMRH);
     	wm = new WelcomeManager(rh, port);
     	wm.startThread();
 	}
     public MiddlewareServer(int port, String carHost, int carPort, String flightHost,
     		int flightPort, String roomHost, int roomPort) {
     	cm = new ConnectionManager();
-    	rh = new MiddlewareRequestHandler(cm);
+    	customerRM = new ResourceManagerImpl();
+    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), 45654);
+    	customerTMRH = new TMRequestHandler(customerTM);
+    	rh = new MiddlewareTMRequestHandler(cm, customerTM, customerTMRH);
     	wm = new WelcomeManager(rh, port);
     	wm.startThread();
     	//connect the servers
@@ -50,6 +68,11 @@ public class MiddlewareServer {
 
 			if (cm.addServer(mode, serverHost, serverPort)) {
 				System.out.println("Success!");
+    			try {
+					cm.getConnection(mode).sendRequest(new RequestDescriptor(RequestType.ABORTALL));
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			} else {
 				System.out.println("Failed.");
 			}
@@ -115,6 +138,11 @@ public class MiddlewareServer {
         		int port = Integer.parseInt(scanner.nextLine());
         		if (cm.addServer(mode, hostname, port)) {
         			System.out.println("Success!");
+        			try {
+						cm.getConnection(mode).sendRequest(new RequestDescriptor(RequestType.ABORTALL));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
         		} else {
         			System.out.println("Failed.");
         		}

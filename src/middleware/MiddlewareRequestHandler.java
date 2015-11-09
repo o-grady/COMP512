@@ -57,7 +57,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			case COMMIT:
 			case ABORT:
 			case SHUTDOWN:
-				mode = ServerMode.TRANSACTION;
+				mode = ServerMode.CUSTOMER;
 				break;
 			default:
 				break;
@@ -72,11 +72,6 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 					}
 					return rh.handleRequest(request);
 				}
-			}else if(mode == ServerMode.TRANSACTION){
-				//THIS MIGHT CHANGE IF TRANACTIONS ARE ALL MANAGED AT MIDDLEWARE
-				
-				//send to car server for now
-				return cm.getConnection(ServerMode.CAR).sendRequest(request);
 			}
 			else if (cm.modeIsConnected(mode)) {
 				return cm.getConnection(mode).sendRequest(request);

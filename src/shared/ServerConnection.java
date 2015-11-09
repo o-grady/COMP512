@@ -7,16 +7,10 @@ import java.net.Socket;
 
 public class ServerConnection {
 	
-	/*private Socket connectionSocket;
-	private ObjectInputStream streamIn;
-	private ObjectOutputStream streamOut;*/
 	private String hostname;
 	private int port;
 	
 	public ServerConnection(String hostname, int port) throws IOException {
-		/*this.connectionSocket = new Socket(hostname, port);
-		this.streamOut = new ObjectOutputStream(connectionSocket.getOutputStream());
-		this.streamIn = new ObjectInputStream(connectionSocket.getInputStream());*/
 		this.hostname = hostname;
 		this.port = port;
 	}
@@ -36,12 +30,6 @@ public class ServerConnection {
 		} else {
 			throw new Exception("Incorrect class");
 		}
-	}
-	
-	public void closeConnection() throws IOException {
-		/*if (!connectionSocket.isClosed()) {
-			connectionSocket.close();
-		}*/
 	}
 	
 	public String getHostname() {

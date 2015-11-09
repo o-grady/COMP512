@@ -33,13 +33,7 @@ public class ConnectionManager {
 			return;
 		}
 		
-		try {
-			connections.get(mode).closeConnection();
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-			connections.remove(mode);
-		}
+		connections.remove(mode);
 	}
 	
 	public ServerConnection getConnection(ServerMode mode) {

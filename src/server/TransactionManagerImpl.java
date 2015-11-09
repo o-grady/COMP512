@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -21,23 +20,28 @@ public class TransactionManagerImpl implements TransactionManager {
 	String transactionLocation;
 	
 	public static void main(String args[]){
-		/*
+		
 		TransactionManager tm = new TransactionManagerImpl(new ResourceManagerImpl(), new LockManager(), 1);
 		int txnID1 = tm.startTransaction();
 		int txnID2 = tm.startTransaction();
-		System.out.println("Query Cars txn1:" + tm.queryCars(1, "1", txnID1));
-		System.out.println("Query Cars txn2:" + tm.queryCars(1, "2", txnID2));
-		System.out.println("Add Cars txn1:" + tm.addCars(1, "1", 1, 1, txnID1));
-		System.out.println("Add Cars txn2:" + tm.addCars(1, "2", 1, 1, txnID2));
-		System.out.println("Commit txn1:" + tm.commitTransaction(txnID1));
-		System.out.println("Commit txn2:" + tm.commitTransaction(txnID2));
-		int txnID3 = tm.startTransaction();
-		int txnID4 = tm.startTransaction();
-		System.out.println("New Customer txn3:" + tm.newCustomer(1, txnID3));
-		System.out.println("New Customer txn4:" + tm.newCustomer(1, txnID4));
-		System.out.println("Commit txn3:" + tm.commitTransaction(txnID3));
-		System.out.println("Commit txn4:" + tm.commitTransaction(txnID4));
-		*/
+		try {
+			System.out.println("Query Cars txn1:" + tm.queryCars(1, "1", txnID1));
+			System.out.println("Query Cars txn2:" + tm.queryCars(1, "2", txnID2));
+			System.out.println("Add Cars txn1:" + tm.addCars(1, "1", 1, 1, txnID1));
+			System.out.println("Add Cars txn2:" + tm.addCars(1, "2", 1, 1, txnID2));
+			System.out.println("Commit txn1:" + tm.commitTransaction(txnID1));
+			System.out.println("Commit txn2:" + tm.commitTransaction(txnID2));
+			int txnID3 = tm.startTransaction();
+			int txnID4 = tm.startTransaction();
+			System.out.println("New Customer txn3:" + tm.newCustomer(1, txnID3));
+			System.out.println("New Customer txn4:" + tm.newCustomer(1, txnID4));
+			System.out.println("Commit txn3:" + tm.commitTransaction(txnID3));
+			System.out.println("Commit txn4:" + tm.commitTransaction(txnID4));
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		
+		
 	}
 	private int getMostRecentCommitNumber(){
 		int largestTxn = 0;
@@ -67,8 +71,10 @@ public class TransactionManagerImpl implements TransactionManager {
 		//Make folder if it does not exist
 		txnFolder.mkdirs();
 		this.transactionCounter = getMostRecentCommitNumber();
-		System.out.println("TransactionCounter initialized to" + transactionCounter);
-		rm.readOldStateFromFile("commitedTxn"+transactionCounter, transactionLocation);
+		System.out.println("TransactionCounter initialized to " + transactionCounter);
+		if (transactionCounter > 0) {
+			rm.readOldStateFromFile("commitedTxn"+transactionCounter, transactionLocation);
+		}		
 	}
 	
 	@Override
@@ -78,6 +84,14 @@ public class TransactionManagerImpl implements TransactionManager {
 		rm.writeDataToFile(fileName, transactionLocation);
 		activeTransactions.add(transactionCounter);
 		return transactionCounter;
+	}
+	
+	@Override
+	public int enlist(int id) {
+		String fileName = "oldState_txn" + id;
+		rm.writeDataToFile(fileName, transactionLocation);
+		activeTransactions.add(id);
+		return id;
 	}
 
 	@Override
@@ -425,7 +439,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			throw new TransactionNotActiveException();
 		}
 		try {
-			lm.Lock(transactionID, "flight"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
 			return rm.reserveFlight(id, customerNumber, flightNumber);
 		} catch (DeadlockException e) {
 			System.out.println("reserveFlight failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -442,7 +456,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			throw new TransactionNotActiveException();
 		}
 		try {
-			lm.Lock(transactionID, "car"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
 			return rm.reserveCar(id, customerNumber, location);
 		} catch (DeadlockException e) {
 			System.out.println("reserveCar failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -459,7 +473,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			throw new TransactionNotActiveException();
 		}
 		try {
-			lm.Lock(transactionID, "room"+id, LockManager.WRITE);
+			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
 			return rm.reserveRoom(id, customerNumber, location);
 		} catch (DeadlockException e) {
 			System.out.println("reserveRoom failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -468,5 +482,4 @@ public class TransactionManagerImpl implements TransactionManager {
 			throw new AbortedTransactionException();
 		}
 	}
-
 }

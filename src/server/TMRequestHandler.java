@@ -139,9 +139,18 @@ public class TMRequestHandler implements IRequestHandler {
 	            //shutdown if abortAll worked
 	            if(boolResponse){
 	            	System.exit(0);
-	            }
-	            
+	            }	            
 	            break;
+		    case ENLIST:
+		    	System.out.println("ENLIST received");
+		    	intResponse = tm.enlist(transactionID);
+		    	break;
+			case ABORTALL:
+				System.out.println("ABORTALL received");
+		    	boolResponse = tm.abortAllActiveTransactions();		    	
+				break;
+			default:
+				break;
 			}
 		//Transaction problems are returned in stringResponse
 		} catch (TransactionNotActiveException e){

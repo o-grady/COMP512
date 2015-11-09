@@ -1,9 +1,9 @@
 package server;
 
-import java.util.Vector;
-
 public interface TransactionManager {
 	public int startTransaction();
+	
+	public int enlist(int id);
 	
 	public boolean commitTransaction(int transactionID) throws AbortedTransactionException, TransactionNotActiveException;
 	

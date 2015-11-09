@@ -6,7 +6,7 @@ import java.util.Vector;
 public class RequestDescriptor implements Serializable {
 
 	private static final long serialVersionUID = -1943991785815079042L;
-	public RequestType requestType;
+	public final RequestType requestType;
 	
     public int id;
     public int flightNumber;

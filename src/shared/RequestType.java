@@ -24,5 +24,8 @@ public enum RequestType {
     STARTTXN,
     COMMIT,
     ABORT,
-    SHUTDOWN
+    SHUTDOWN,
+ // internal signals, do not expose to client
+    ENLIST,
+    ABORTALL
 }
