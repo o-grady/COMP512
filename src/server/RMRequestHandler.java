@@ -19,118 +19,102 @@ public class RMRequestHandler implements IRequestHandler {
 		switch (request.requestType) {
 		case NEWFLIGHT:
 			System.out.println("NEWFLIGHT received");
-			boolResponse = rm.addFlight(request.id,
+			boolResponse = rm.addFlight(request.transactionID,
 					request.flightNumber, request.numSeats, request.price);
 			break;
 		case NEWCAR:
 			System.out.println("NEWCAR received");
-			boolResponse = rm.addCars(request.id,
+			boolResponse = rm.addCars(request.transactionID,
 					request.location, request.numCars, request.price);
 			break;
 		case NEWROOM:
 			System.out.println("NEWROOM received");
-			boolResponse = rm.addRooms(request.id,
+			boolResponse = rm.addRooms(request.transactionID,
 					request.location, request.numRooms, request.price);
 			break;
 		case NEWCUSTOMER:
 			System.out.println("NEWCUSTOMER received");
-			intResponse = rm.newCustomer(request.id);
+			intResponse = rm.newCustomer(request.transactionID);
 			break;
 		case NEWCUSTOMERID:
 			System.out.println("NEWCUSTOMERID received");
-			boolResponse = rm.newCustomerId(request.id,
+			boolResponse = rm.newCustomerId(request.transactionID,
 					request.customerNumber);
 			break;
 		case DELETEFLIGHT:
 			System.out.println("DELETEFLIGHT received");
-			boolResponse = rm.deleteFlight(request.id,
+			boolResponse = rm.deleteFlight(request.transactionID,
 					request.flightNumber);
 			break;
 		case DELETECAR:
 			System.out.println("DELETECAR received");
-			boolResponse = rm.deleteCars(request.id,
+			boolResponse = rm.deleteCars(request.transactionID,
 					request.location);
 			break;
 		case DELETEROOM:
 			System.out.println("DELETEROOM received");
-			boolResponse = rm.deleteRooms(request.id,
+			boolResponse = rm.deleteRooms(request.transactionID,
 					request.location);
 			break;
 		case DELETECUSTOMER:
 			System.out.println("DELETECUSTOMER received");
-			boolResponse = rm.deleteCustomer(request.id,
+			boolResponse = rm.deleteCustomer(request.transactionID,
 					request.customerNumber);
 			break;
 		case QUERYFLIGHT:
 			System.out.println("QUERYFLIGHT received");
-			intResponse = rm.queryFlight(request.id,
+			intResponse = rm.queryFlight(request.transactionID,
 					request.flightNumber);
 			break;
 		case QUERYCAR:
 			System.out.println("QUERYCAR received");
-			intResponse = rm.queryCars(request.id,
+			intResponse = rm.queryCars(request.transactionID,
 					request.location);
 			break;
 		case QUERYROOM:
 			System.out.println("QUERYROOM received");
-			intResponse = rm.queryRooms(request.id,
+			intResponse = rm.queryRooms(request.transactionID,
 					request.location);
 			break;
 		case QUERYCUSTOMER:
 			System.out.println("QUERYCUSTOMER received");
 			// Pretty sure its this method
-			stringResponse = rm.queryCustomerInfo(request.id,
+			stringResponse = rm.queryCustomerInfo(request.transactionID,
 					request.customerNumber);
 			break;
 		case QUERYFLIGHTPRICE:
 			System.out.println("QUERYFLIGHTPRICE received");
-			intResponse = rm.queryFlightPrice(request.id,
+			intResponse = rm.queryFlightPrice(request.transactionID,
 					request.flightNumber);
 			break;
 		case QUERYCARPRICE:
 			System.out.println("QUERYCARPRICE received");
-			intResponse = rm.queryCarsPrice(request.id,
+			intResponse = rm.queryCarsPrice(request.transactionID,
 					request.location);
 			break;
 		case QUERYROOMPRICE:
 			System.out.println("QUERYROOMPRICE received");
-			intResponse = rm.queryRoomsPrice(request.id,
+			intResponse = rm.queryRoomsPrice(request.transactionID,
 					request.location);
 			break;
 		case RESERVEFLIGHT:
 			System.out.println("RESERVEFLIGHT received");
-			boolResponse = rm.reserveFlight(request.id,
+			boolResponse = rm.reserveFlight(request.transactionID,
 					request.customerNumber, request.flightNumber);
 			break;
 		case RESERVECAR:
 			System.out.println("RESERVECAR received");
-			boolResponse = rm.reserveCar(request.id,
+			boolResponse = rm.reserveCar(request.transactionID,
 					request.customerNumber, request.location);
 			break;
 		case RESERVEROOM:
 			System.out.println("RESERVEROOM received");
-			boolResponse = rm.reserveRoom(request.id,
+			boolResponse = rm.reserveRoom(request.transactionID,
 					request.customerNumber, request.location);
 			break;
-		case ITINERARY:
-			System.out.println("ITINERARY received");
-			// This one doesn't work. Fix when messages are passed as JSON
-			// aResourceManager.reserveItinerary(request.id, request[2],
-			// Integer.parseInt(request[3]), Integer.parseInt(request[4]));
-			// outToClient.writeBytes("ITINERARY received");
+		default:
+			System.out.println("Received unhandled signal at RMRequestHandler: " + request.requestType.toString());
 			break;
-		case STARTTXN:
-            System.out.println("STARTTXN received");
-            break;
-	    case COMMIT:
-            System.out.println("COMMIT received");
-            break;
-	    case ABORT:
-            System.out.println("ABORT received");
-            break;
-	    case SHUTDOWN:
-            System.out.println("SHUTDOWN received");
-            break;
 		}
 		if(stringResponse != null){
 			return new ResponseDescriptor(stringResponse);

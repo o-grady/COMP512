@@ -103,7 +103,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		return new ResponseDescriptor(custInfo);
 	}
 	private ResponseDescriptor reserveItinerary(RequestDescriptor request) {
-		int id = request.id;
+		int transactionID = request.transactionID;
 		int customerNumber = request.customerNumber;
 		String location = request.location;
 		boolean car = request.car;
@@ -119,7 +119,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		//Query all flights, return if any are full
 		for (int i = 0 ; i < request.flightNumbers.size() ; i++){
 			req2 = new RequestDescriptor(RequestType.QUERYFLIGHT);
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.flightNumber = request.flightNumbers.elementAt(i);
 			if( this.handleRequest(req2).intResponse <= 0){
 				res.booleanResponse = false;
@@ -130,7 +130,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		//Query room and car if selected
 		if(room){
 			req2 = new RequestDescriptor(RequestType.QUERYROOM);
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.location = location;
 			if(this.handleRequest(req2).intResponse <= 0){
 				res.booleanResponse = false;
@@ -140,7 +140,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		}
 		if(car){
 			req2 = new RequestDescriptor(RequestType.QUERYCAR);
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.location = location;
 			if(this.handleRequest(req2).intResponse <= 0){
 				res.booleanResponse = false;
@@ -151,7 +151,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		//Book flights, room and car
 		for (int i = 0 ; i < request.flightNumbers.size() ; i++){
 			req2 = new RequestDescriptor(RequestType.RESERVEFLIGHT);
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.customerNumber = customerNumber;
 			req2.flightNumber = request.flightNumbers.elementAt(i);
 			if( !this.handleRequest(req2).booleanResponse){
@@ -163,7 +163,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		}
 		if(car){
 			req2 = new RequestDescriptor(RequestType.RESERVECAR);
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.customerNumber = customerNumber;
 			req2.location = location;
 			if(!this.handleRequest(req2).booleanResponse){
@@ -174,7 +174,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		}
 		if(room){
 			req2 = new RequestDescriptor(RequestType.RESERVEROOM);
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.customerNumber = customerNumber;
 			req2.location = location;
 			if(this.handleRequest(req2).booleanResponse){

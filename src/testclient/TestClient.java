@@ -25,7 +25,7 @@ public class TestClient {
 		//RESERVE WHEN EMPTY
 		System.out.println("Sending ITINERARY, expecting false");
 		r = new RequestDescriptor(RequestType.ITINERARY);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.flightNumbers = new Vector<Integer>();
 		r.location = "Montreal";
@@ -41,14 +41,14 @@ public class TestClient {
 		
 		System.out.println("Sending NEWCUSTOMERID, expecting true");
 		r = new RequestDescriptor(RequestType.NEWCUSTOMERID);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		TestClient.sendRequest(r);
 		//QUERY, RESERVE, ADD 1, QUERY, RESERVE, RESERVE
 
 		System.out.println("Sending QUERYCAR, expecting 0");
 		r = new RequestDescriptor(RequestType.QUERYCAR);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest( r ).intResponse == 0){
             System.out.println("Success!");
@@ -60,7 +60,7 @@ public class TestClient {
 		
 		System.out.println("Sending RESERVECAR, expecting false");
 		r = new RequestDescriptor(RequestType.RESERVECAR);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest(r).booleanResponse == false){
@@ -73,7 +73,7 @@ public class TestClient {
 		
 		System.out.println("Sending ADDCAR, expecting true");
 		r = new RequestDescriptor(RequestType.NEWCAR);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		r.numCars = 1;
 		r.price = 5;
@@ -87,7 +87,7 @@ public class TestClient {
 		
 		System.out.println("Sending QUERYCAR, expecting 1");
 		r = new RequestDescriptor(RequestType.QUERYCAR);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest( r ).intResponse == 1){
             System.out.println("Success!");
@@ -99,7 +99,7 @@ public class TestClient {
 		
 		System.out.println("Sending RESERVECAR, expecting true");
 		r = new RequestDescriptor(RequestType.RESERVECAR);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest(r).booleanResponse == true){
@@ -112,7 +112,7 @@ public class TestClient {
 		
 		System.out.println("Sending QUERYCAR, expecting 0");
 		r = new RequestDescriptor(RequestType.QUERYCAR);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest( r ).intResponse == 0){
             System.out.println("Success!");
@@ -124,7 +124,7 @@ public class TestClient {
 		
 		System.out.println("Sending RESERVECAR, expecting false");
 		r = new RequestDescriptor(RequestType.RESERVECAR);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest(r).booleanResponse == false){
@@ -138,7 +138,7 @@ public class TestClient {
 
 		System.out.println("Sending QUERYFLIGHT, expecting 0");
 		r = new RequestDescriptor(RequestType.QUERYFLIGHT);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest( r ).intResponse == 0){
             System.out.println("Success!");
@@ -150,7 +150,7 @@ public class TestClient {
 		
 		System.out.println("Sending RESERVEFLIGHT, expecting false");
 		r = new RequestDescriptor(RequestType.RESERVEFLIGHT);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest(r).booleanResponse == false){
@@ -163,7 +163,7 @@ public class TestClient {
 		
 		System.out.println("Sending ADDFLIGHT, expecting true");
 		r = new RequestDescriptor(RequestType.NEWFLIGHT);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		r.numSeats = 1;
 		r.price = 5;
@@ -177,7 +177,7 @@ public class TestClient {
 		
 		System.out.println("Sending QUERYFLIGHT, expecting 1");
 		r = new RequestDescriptor(RequestType.QUERYFLIGHT);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest( r ).intResponse == 1){
             System.out.println("Success!");
@@ -189,7 +189,7 @@ public class TestClient {
 		
 		System.out.println("Sending RESERVEFLIGHT, expecting true");
 		r = new RequestDescriptor(RequestType.RESERVEFLIGHT);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest(r).booleanResponse == true){
@@ -202,7 +202,7 @@ public class TestClient {
 		
 		System.out.println("Sending QUERYFLIGHT, expecting 0");
 		r = new RequestDescriptor(RequestType.QUERYFLIGHT);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest( r ).intResponse == 0){
             System.out.println("Success!");
@@ -214,7 +214,7 @@ public class TestClient {
 		
 		System.out.println("Sending RESERVEFLIGHT, expecting false");
 		r = new RequestDescriptor(RequestType.RESERVEFLIGHT);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest(r).booleanResponse == false){
@@ -228,7 +228,7 @@ public class TestClient {
 
 		System.out.println("Sending QUERYROOM, expecting 0");
 		r = new RequestDescriptor(RequestType.QUERYROOM);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest( r ).intResponse == 0){
             System.out.println("Success!");
@@ -240,7 +240,7 @@ public class TestClient {
 		
 		System.out.println("Sending RESERVEROOM, expecting false");
 		r = new RequestDescriptor(RequestType.RESERVEROOM);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest(r).booleanResponse == false){
@@ -253,7 +253,7 @@ public class TestClient {
 		
 		System.out.println("Sending ADDROOM, expecting true");
 		r = new RequestDescriptor(RequestType.NEWROOM);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		r.numRooms = 1;
 		r.price = 5;
@@ -267,7 +267,7 @@ public class TestClient {
 		
 		System.out.println("Sending QUERYROOM, expecting 1");
 		r = new RequestDescriptor(RequestType.QUERYROOM);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest( r ).intResponse == 1){
             System.out.println("Success!");
@@ -279,7 +279,7 @@ public class TestClient {
 		
 		System.out.println("Sending RESERVEROOM, expecting true");
 		r = new RequestDescriptor(RequestType.RESERVEROOM);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest(r).booleanResponse == true){
@@ -292,7 +292,7 @@ public class TestClient {
 		
 		System.out.println("Sending QUERYROOM, expecting 0");
 		r = new RequestDescriptor(RequestType.QUERYROOM);
-		r.id = 1;
+		r.transactionID = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest( r ).intResponse == 0){
             System.out.println("Success!");
@@ -304,7 +304,7 @@ public class TestClient {
 		
 		System.out.println("Sending RESERVEROOM, expecting false");
 		r = new RequestDescriptor(RequestType.RESERVEROOM);
-		r.id = 1;
+		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
 		if(TestClient.sendRequest(r).booleanResponse == false){
@@ -315,7 +315,7 @@ public class TestClient {
             failCount++;
         }
 		System.out.println("Total tests: " + (successCount + failCount));
-		System.out.println("Successful tests: "+successCount);
+		System.out.println("Successful tests: " + successCount);
 		System.out.println("Failed tests: "+ failCount);
 		
 
@@ -335,6 +335,7 @@ public class TestClient {
 			if(response.additionalMessage != null){
 				message += ", Message: " + response.additionalMessage;
 			}
+			System.out.println(message);
 			return response;
 		} catch (Exception e) {
 			message = "Test Client: excpetion caught sending request";

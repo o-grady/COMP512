@@ -21,97 +21,97 @@ public class TMRequestHandler implements IRequestHandler {
 			switch (request.requestType) {
 			case NEWFLIGHT:
 				System.out.println("NEWFLIGHT received");
-				boolResponse = tm.addFlight(request.id,
+				boolResponse = tm.addFlight(request.transactionID,
 						request.flightNumber, request.numSeats, request.price, transactionID);
 				break;
 			case NEWCAR:
 				System.out.println("NEWCAR received");
-				boolResponse = tm.addCars(request.id,
+				boolResponse = tm.addCars(request.transactionID,
 						request.location, request.numCars, request.price, transactionID);
 				break;
 			case NEWROOM:
 				System.out.println("NEWROOM received");
-				boolResponse = tm.addRooms(request.id,
+				boolResponse = tm.addRooms(request.transactionID,
 						request.location, request.numRooms, request.price, transactionID);
 				break;
 			case NEWCUSTOMER:
 				System.out.println("NEWCUSTOMER received");
-				intResponse = tm.newCustomer(request.id, transactionID);
+				intResponse = tm.newCustomer(request.transactionID, transactionID);
 				break;
 			case NEWCUSTOMERID:
 				System.out.println("NEWCUSTOMERID received");
-				boolResponse = tm.newCustomerId(request.id,
+				boolResponse = tm.newCustomerId(request.transactionID,
 						request.customerNumber, transactionID);
 				break;
 			case DELETEFLIGHT:
 				System.out.println("DELETEFLIGHT received");
-				boolResponse = tm.deleteFlight(request.id,
+				boolResponse = tm.deleteFlight(request.transactionID,
 						request.flightNumber, transactionID);
 				break;
 			case DELETECAR:
 				System.out.println("DELETECAR received");
-				boolResponse = tm.deleteCars(request.id,
+				boolResponse = tm.deleteCars(request.transactionID,
 						request.location, transactionID);
 				break;
 			case DELETEROOM:
 				System.out.println("DELETEROOM received");
-				boolResponse = tm.deleteRooms(request.id,
+				boolResponse = tm.deleteRooms(request.transactionID,
 						request.location, transactionID);
 				break;
 			case DELETECUSTOMER:
 				System.out.println("DELETECUSTOMER received");
-				boolResponse = tm.deleteCustomer(request.id,
+				boolResponse = tm.deleteCustomer(request.transactionID,
 						request.customerNumber, transactionID);
 				break;
 			case QUERYFLIGHT:
 				System.out.println("QUERYFLIGHT received");
-				intResponse = tm.queryFlight(request.id,
+				intResponse = tm.queryFlight(request.transactionID,
 						request.flightNumber, transactionID);
 				break;
 			case QUERYCAR:
 				System.out.println("QUERYCAR received");
-				intResponse = tm.queryCars(request.id,
+				intResponse = tm.queryCars(request.transactionID,
 						request.location, transactionID);
 				break;
 			case QUERYROOM:
 				System.out.println("QUERYROOM received");
-				intResponse = tm.queryRooms(request.id,
+				intResponse = tm.queryRooms(request.transactionID,
 						request.location, transactionID);
 				break;
 			case QUERYCUSTOMER:
 				System.out.println("QUERYCUSTOMER received");
 				// Pretty sure its this method
-				stringResponse = tm.queryCustomerInfo(request.id,
+				stringResponse = tm.queryCustomerInfo(request.transactionID,
 						request.customerNumber, transactionID);
 				break;
 			case QUERYFLIGHTPRICE:
 				System.out.println("QUERYFLIGHTPRICE received");
-				intResponse = tm.queryFlightPrice(request.id,
+				intResponse = tm.queryFlightPrice(request.transactionID,
 						request.flightNumber, transactionID);
 				break;
 			case QUERYCARPRICE:
 				System.out.println("QUERYCARPRICE received");
-				intResponse = tm.queryCarsPrice(request.id,
+				intResponse = tm.queryCarsPrice(request.transactionID,
 						request.location, transactionID);
 				break;
 			case QUERYROOMPRICE:
 				System.out.println("QUERYROOMPRICE received");
-				intResponse = tm.queryRoomsPrice(request.id,
+				intResponse = tm.queryRoomsPrice(request.transactionID,
 						request.location, transactionID);
 				break;
 			case RESERVEFLIGHT:
 				System.out.println("RESERVEFLIGHT received");
-				boolResponse = tm.reserveFlight(request.id,
+				boolResponse = tm.reserveFlight(request.transactionID,
 						request.customerNumber, request.flightNumber, transactionID);
 				break;
 			case RESERVECAR:
 				System.out.println("RESERVECAR received");
-				boolResponse = tm.reserveCar(request.id,
+				boolResponse = tm.reserveCar(request.transactionID,
 						request.customerNumber, request.location, transactionID);
 				break;
 			case RESERVEROOM:
 				System.out.println("RESERVEROOM received");
-				boolResponse = tm.reserveRoom(request.id,
+				boolResponse = tm.reserveRoom(request.transactionID,
 						request.customerNumber, request.location, transactionID);
 				break;
 			case ITINERARY:

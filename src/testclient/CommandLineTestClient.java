@@ -104,28 +104,28 @@ public class CommandLineTestClient {
     	RequestDescriptor rd = new RequestDescriptor(rt);
     	switch(rt) {
 		case DELETECAR:
-			System.out.println("Deleting the cars from a particular location  using id: " + arguments[1]);
+			System.out.println("Deleting the cars from a particular location  in transactionID:  " + arguments[1]);
             System.out.println("car Location: " + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
             rd.location = getString(arguments[2]);
 			break;
 		case DELETECUSTOMER:
-            System.out.println("Deleting a customer from the database using id: " + arguments[1]);
+            System.out.println("Deleting a customer from the database in transactionID:  " + arguments[1]);
             System.out.println("Customer id: " + arguments[2]);
 
                 rd.transactionID = getInt(arguments[1]);
                 rd.customerNumber = getInt(arguments[2]);
 			break;
 		case DELETEFLIGHT:
-			System.out.println("Deleting a flight using id: " + arguments[1]);
+			System.out.println("Deleting a flight in transactionID:  " + arguments[1]);
             System.out.println("Flight Number: " + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
             rd.flightNumber = getInt(arguments[2]);
 			break;
 		case DELETEROOM:
-            System.out.println("Deleting all rooms from a particular location  using id: " + arguments[1]);
+            System.out.println("Deleting all rooms from a particular location  in transactionID:  " + arguments[1]);
             System.out.println("room Location: " + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
@@ -136,7 +136,7 @@ public class CommandLineTestClient {
                 System.out.println("Wrong number of arguments");
                 break;
             }
-            System.out.println("Reserving an Itinerary using id: " + arguments[1]);
+            System.out.println("Reserving an Itinerary in transactionID:  " + arguments[1]);
             System.out.println("Customer id: " + arguments[2]);
             for (int i = 0; i<arguments.length-6; i++)
                 System.out.println("Flight number" + arguments[3 + i]);
@@ -155,7 +155,7 @@ public class CommandLineTestClient {
 
 			break;
 		case NEWCAR:
-            System.out.println("Adding a new car using id: " + arguments[1]);
+            System.out.println("Adding a new car in transactionID:  " + arguments[1]);
             System.out.println("car Location: " + arguments[2]);
             System.out.println("Add Number of cars: " + arguments[3]);
             System.out.println("Set Price: " + arguments[4]);
@@ -166,19 +166,19 @@ public class CommandLineTestClient {
             rd.price = getInt(arguments[4]);
 			break;
 		case NEWCUSTOMER:
-			System.out.println("Adding a new Customer using id: " + arguments[1]);
+			System.out.println("Adding a new Customer in transactionID:  " + arguments[1]);
 			
 			rd.transactionID = getInt(arguments[1]);
 			break;
 		case NEWCUSTOMERID:
-            System.out.println("Adding a new Customer using id: "
+            System.out.println("Adding a new Customer in transactionID:  "
                     + arguments[1]  +  " and cid "  + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
             rd.customerNumber = getInt(arguments[2]);
 			break;
 		case NEWFLIGHT:
-            System.out.println("Adding a new Flight using id: " + arguments[1]);
+            System.out.println("Adding a new Flight in transactionID:  " + arguments[1]);
             System.out.println("Flight number: " + arguments[2]);
             System.out.println("Add Flight Seats: " + arguments[3]);
             System.out.println("Set Flight Price: " + arguments[4]);
@@ -189,7 +189,7 @@ public class CommandLineTestClient {
             rd.price = getInt(arguments[4]);
 			break;
 		case NEWROOM:
-            System.out.println("Adding a new room using id: " + arguments[1]);
+            System.out.println("Adding a new room in transactionID:  " + arguments[1]);
             System.out.println("room Location: " + arguments[2]);
             System.out.println("Add Number of rooms: " + arguments[3]);
             System.out.println("Set Price: " + arguments[4]);
@@ -200,56 +200,56 @@ public class CommandLineTestClient {
             rd.price = getInt(arguments[4]);
 			break;
 		case QUERYCAR:
-            System.out.println("Querying a car location using id: " + arguments[1]);
+            System.out.println("Querying a car location in transactionID:  " + arguments[1]);
             System.out.println("car location: " + arguments[2]);
             
             rd.transactionID = getInt(arguments[1]);
             rd.location = getString(arguments[2]);
 			break;
 		case QUERYCARPRICE:
-            System.out.println("Querying a car price using id: " + arguments[1]);
+            System.out.println("Querying a car price in transactionID:  " + arguments[1]);
             System.out.println("car location: " + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
             rd.location = getString(arguments[2]);
 			break;
 		case QUERYCUSTOMER:
-            System.out.println("Querying Customer information using id: " + arguments[1]);
+            System.out.println("Querying Customer information in transactionID:  " + arguments[1]);
             System.out.println("Customer id: " + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
             rd.customerNumber = getInt(arguments[2]);
 			break;
 		case QUERYFLIGHT:
-            System.out.println("Querying a flight using id: " + arguments[1]);
+            System.out.println("Querying a flight in transactionID:  " + arguments[1]);
             System.out.println("Flight number: " + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
             rd.flightNumber = getInt(arguments[2]);
 			break;
 		case QUERYFLIGHTPRICE:
-            System.out.println("Querying a flight Price using id: " + arguments[1]);
+            System.out.println("Querying a flight Price in transactionID:  " + arguments[1]);
             System.out.println("Flight number: " + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
             rd.flightNumber = getInt(arguments[2]);
 			break;
 		case QUERYROOM:
-            System.out.println("Querying a room location using id: " + arguments[1]);
+            System.out.println("Querying a room location in transactionID:  " + arguments[1]);
             System.out.println("room location: " + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
             rd.location = getString(arguments[2]);
 			break;
 		case QUERYROOMPRICE:
-            System.out.println("Querying a room price using id: " + arguments[1]);
+            System.out.println("Querying a room price in transactionID:  " + arguments[1]);
             System.out.println("room Location: " + arguments[2]);
 
             rd.transactionID = getInt(arguments[1]);
             rd.location = getString(arguments[2]);
 			break;
 		case RESERVECAR:
-            System.out.println("Reserving a car at a location using id: " + arguments[1]);
+            System.out.println("Reserving a car at a location in transactionID:  " + arguments[1]);
             System.out.println("Customer id: " + arguments[2]);
             System.out.println("Location: " + arguments[3]);
 
@@ -258,7 +258,7 @@ public class CommandLineTestClient {
             rd.location = getString(arguments[3]);
 			break;
 		case RESERVEFLIGHT:
-            System.out.println("Reserving a seat on a flight using id: " + arguments[1]);
+            System.out.println("Reserving a seat on a flight in transactionID:  " + arguments[1]);
             System.out.println("Customer id: " + arguments[2]);
             System.out.println("Flight number: " + arguments[3]);
 
@@ -267,7 +267,7 @@ public class CommandLineTestClient {
             rd.flightNumber = getInt(arguments[3]);
 			break;
 		case RESERVEROOM:
-            System.out.println("Reserving a room at a location using id: " + arguments[1]);
+            System.out.println("Reserving a room at a location in transactionID:  " + arguments[1]);
             System.out.println("Customer id: " + arguments[2]);
             System.out.println("Location: " + arguments[3]);
 
@@ -404,7 +404,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tAdd information about a new flight.");
             System.out.println("\nUsage: ");
-            System.out.println("\tnewflight, <id>, <flightnumber>, <numSeats>, <flightprice>");
+            System.out.println("\tnewflight, <transactionID>, <flightnumber>, <numSeats>, <flightprice>");
             break;
             
             case 3:  //new car
@@ -412,7 +412,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tAdd information about a new car location.");
             System.out.println("\nUsage: ");
-            System.out.println("\tnewcar, <id>, <location>, <numberofcars>, <pricepercar>");
+            System.out.println("\tnewcar, <transactionID>, <location>, <numberofcars>, <pricepercar>");
             break;
             
             case 4:  //new room
@@ -420,7 +420,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tAdd information about a new room location.");
             System.out.println("\nUsage: ");
-            System.out.println("\tnewroom, <id>, <location>, <numberofrooms>, <priceperroom>");
+            System.out.println("\tnewroom, <transactionID>, <location>, <numberofrooms>, <priceperroom>");
             break;
             
             case 5:  //new Customer
@@ -428,7 +428,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tGet the system to provide a new customer id. (same as adding a new customer)");
             System.out.println("\nUsage: ");
-            System.out.println("\tnewcustomer, <id>");
+            System.out.println("\tnewcustomer, <transactionID>");
             break;
             
             
@@ -437,7 +437,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tDelete a flight's information.");
             System.out.println("\nUsage: ");
-            System.out.println("\tdeleteflight, <id>, <flightnumber>");
+            System.out.println("\tdeleteflight, <transactionID>, <flightnumber>");
             break;
             
             case 7: //delete car
@@ -445,7 +445,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tDelete all cars from a location.");
             System.out.println("\nUsage: ");
-            System.out.println("\tdeletecar, <id>, <location>, <numCars>");
+            System.out.println("\tdeletecar, <transactionID>, <location>, <numCars>");
             break;
             
             case 8: //delete room
@@ -453,7 +453,7 @@ public class CommandLineTestClient {
             System.out.println("\nPurpose: ");
             System.out.println("\tDelete all rooms from a location.");
             System.out.println("Usage: ");
-            System.out.println("\tdeleteroom, <id>, <location>, <numRooms>");
+            System.out.println("\tdeleteroom, <transactionID>, <location>, <numRooms>");
             break;
             
             case 9: //delete Customer
@@ -461,7 +461,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tRemove a customer from the database.");
             System.out.println("\nUsage: ");
-            System.out.println("\tdeletecustomer, <id>, <customerid>");
+            System.out.println("\tdeletecustomer, <transactionID>, <customerid>");
             break;
             
             case 10: //querying a flight
@@ -469,7 +469,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tObtain Seat information about a certain flight.");
             System.out.println("\nUsage: ");
-            System.out.println("\tqueryflight, <id>, <flightnumber>");
+            System.out.println("\tqueryflight, <transactionID>, <flightnumber>");
             break;
             
             case 11: //querying a car Location
@@ -477,7 +477,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tObtain number of cars at a certain car location.");
             System.out.println("\nUsage: ");
-            System.out.println("\tquerycar, <id>, <location>");        
+            System.out.println("\tquerycar, <transactionID>, <location>");        
             break;
             
             case 12: //querying a room location
@@ -485,7 +485,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tObtain number of rooms at a certain room location.");
             System.out.println("\nUsage: ");
-            System.out.println("\tqueryroom, <id>, <location>");        
+            System.out.println("\tqueryroom, <transactionID>, <location>");        
             break;
             
             case 13: //querying Customer Information
@@ -493,7 +493,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tObtain information about a customer.");
             System.out.println("\nUsage: ");
-            System.out.println("\tquerycustomer, <id>, <customerid>");
+            System.out.println("\tquerycustomer, <transactionID>, <customerid>");
             break;               
             
             case 14: //querying a flight for price 
@@ -501,7 +501,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tObtain price information about a certain flight.");
             System.out.println("\nUsage: ");
-            System.out.println("\tqueryflightprice, <id>, <flightnumber>");
+            System.out.println("\tqueryflightprice, <transactionID>, <flightnumber>");
             break;
             
             case 15: //querying a car Location for price
@@ -509,7 +509,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tObtain price information about a certain car location.");
             System.out.println("\nUsage: ");
-            System.out.println("\tquerycarprice, <id>, <location>");        
+            System.out.println("\tquerycarprice, <transactionID>, <location>");        
             break;
             
             case 16: //querying a room location for price
@@ -517,7 +517,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tObtain price information about a certain room location.");
             System.out.println("\nUsage: ");
-            System.out.println("\tqueryroomprice, <id>, <location>");        
+            System.out.println("\tqueryroomprice, <transactionID>, <location>");        
             break;
 
             case 17:  //reserve a flight
@@ -525,7 +525,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tReserve a flight for a customer.");
             System.out.println("\nUsage: ");
-            System.out.println("\treserveflight, <id>, <customerid>, <flightnumber>");
+            System.out.println("\treserveflight, <transactionID>, <customerid>, <flightnumber>");
             break;
             
             case 18:  //reserve a car
@@ -533,7 +533,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tReserve a given number of cars for a customer at a particular location.");
             System.out.println("\nUsage: ");
-            System.out.println("\treservecar, <id>, <customerid>, <location>, <nummberofcars>");
+            System.out.println("\treservecar, <transactionID>, <customerid>, <location>, <nummberofcars>");
             break;
             
             case 19:  //reserve a room
@@ -541,7 +541,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tReserve a given number of rooms for a customer at a particular location.");
             System.out.println("\nUsage: ");
-            System.out.println("\treserveroom, <id>, <customerid>, <location>, <nummberofrooms>");
+            System.out.println("\treserveroom, <transactionID>, <customerid>, <location>, <nummberofrooms>");
             break;
             
             case 20:  //reserve an Itinerary
@@ -549,7 +549,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tBook one or more flights.Also book zero or more cars/rooms at a location.");
             System.out.println("\nUsage: ");
-            System.out.println("\titinerary, <id>, <customerid>, "
+            System.out.println("\titinerary, <transactionID>, <customerid>, "
                     + "<flightnumber1>....<flightnumberN>, "
                     + "<LocationToBookcarsOrrooms>, <NumberOfcars>, <NumberOfroom>");
             break;
@@ -568,7 +568,7 @@ public class CommandLineTestClient {
             System.out.println("Purpose: ");
             System.out.println("\tCreates a new customer with the id provided");
             System.out.println("\nUsage: ");
-            System.out.println("\tnewcustomerid, <id>, <customerid>");
+            System.out.println("\tnewcustomerid, <transactionID>, <customerid>");
             break;
 
             case 23:  //start transaction

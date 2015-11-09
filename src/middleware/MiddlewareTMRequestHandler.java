@@ -129,7 +129,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            boolResponse = tm.abortAllActiveTransactions();
 				for( ServerConnection connection : cm.getAllConnections()){
 					try {
-					ResponseDescriptor rd = connection.sendRequest(request);
+						connection.sendRequest(request);
 					} catch (java.net.SocketException ex) {
 						// eat the exception, this is expected we are shutting them down
 					} catch (Exception ex) {
@@ -275,13 +275,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		return new ResponseDescriptor(custInfo);
 	}
 	
-	private ResponseDescriptor reserveItinerary(RequestDescriptor request) {
-		int id = request.id;
-		int customerNumber = request.customerNumber;
-		String location = request.location;
-		boolean car = request.car;
-		boolean room = request.room;
-		RequestDescriptor req2 = null;
+	private ResponseDescriptor reserveItinerary(RequestDescriptor request) {		
 		ResponseDescriptor res = new ResponseDescriptor();
 		//return if no flights
 		if(request.flightNumbers == null || request.flightNumbers.isEmpty()){
@@ -289,26 +283,31 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			res.additionalMessage = "No flight numbers requested";
 			return res;
 		}
-		int transactionId = request.transactionID;
+		RequestDescriptor req2 = null;
+		int customerNumber = request.customerNumber;
+		String location = request.location;
+		boolean car = request.car;
+		boolean room = request.room;
+		int transactionID = request.transactionID;
 		//Query all flights, return if any are full
 		for (int i = 0 ; i < request.flightNumbers.size() ; i++){
 			req2 = new RequestDescriptor(RequestType.QUERYFLIGHT);
-			req2.transactionID = transactionId;
+			req2.transactionID = transactionID;
 			req2.flightNumber = request.flightNumbers.elementAt(i);
 			ResponseDescriptor rd = this.handleRequest(req2);
 			if (rd.intResponse <= 0) {
 				res.booleanResponse = false;
 				res.additionalMessage = "Flight " + req2.flightNumber + " has no seats remaining";
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 				
 				return res;
 			}
 			if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
-				System.out.println("Aborting Transaction " + transactionId);
+				System.out.println("Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 
 				return rd;
@@ -317,23 +316,22 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		//Query room and car if selected
 		if(room){
 			req2 = new RequestDescriptor(RequestType.QUERYROOM);
-			req2.transactionID = transactionId;
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.location = location;
 			ResponseDescriptor rd = this.handleRequest(req2);
 			if (rd.intResponse <= 0) {
 				res.booleanResponse = false;
 				res.additionalMessage = "No car available at " + location;
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 				
 				return res;
 			}
 			if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
-				System.out.println("Aborting Transaction " + transactionId);
+				System.out.println("Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 				
 				return rd;
@@ -341,22 +339,21 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		}
 		if(car){
 			req2 = new RequestDescriptor(RequestType.QUERYCAR);
-			req2.transactionID = transactionId;
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.location = location;
 			ResponseDescriptor rd = this.handleRequest(req2);
 			if (rd.intResponse <= 0) {
 				res.booleanResponse = false;
 				res.additionalMessage = "No room available at " + location;
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 				return res;
 			}
 			if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
-				System.out.println("Aborting Transaction " + transactionId);
+				System.out.println("Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 
 				return rd;
@@ -365,8 +362,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		//Book flights, room and car
 		for (int i = 0 ; i < request.flightNumbers.size() ; i++){
 			req2 = new RequestDescriptor(RequestType.RESERVEFLIGHT);
-			req2.transactionID = transactionId;
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.customerNumber = customerNumber;
 			req2.flightNumber = request.flightNumbers.elementAt(i);
 			ResponseDescriptor rd = this.handleRequest(req2);
@@ -374,14 +370,14 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				res.booleanResponse = false;
 				res.additionalMessage = "Problem booking " + req2.flightNumber;
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 				return res;
 			}
 			if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
-				System.out.println("Aborting Transaction " + transactionId);
+				System.out.println("Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 
 				return rd;
@@ -390,8 +386,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		}
 		if(car){
 			req2 = new RequestDescriptor(RequestType.RESERVECAR);
-			req2.transactionID = transactionId;
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.customerNumber = customerNumber;
 			req2.location = location;
 			ResponseDescriptor rd = this.handleRequest(req2);
@@ -399,14 +394,14 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				res.booleanResponse = false;
 				res.additionalMessage = "Problem booking car at " + location;
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 				return res;
 			}
 			if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
-				System.out.println("Aborting Transaction " + transactionId);
+				System.out.println("Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 
 				return rd;
@@ -414,8 +409,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		}
 		if(room){
 			req2 = new RequestDescriptor(RequestType.RESERVEROOM);
-			req2.transactionID = transactionId;
-			req2.id = id;
+			req2.transactionID = transactionID;
 			req2.customerNumber = customerNumber;
 			req2.location = location;
 			ResponseDescriptor rd = this.handleRequest(req2);
@@ -423,14 +417,14 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				res.booleanResponse = false;
 				res.additionalMessage = "Problem booking room at " + location;
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 				return res;
 			}
 			if (!rd.booleanResponse && rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
-				System.out.println("Aborting Transaction " + transactionId);
+				System.out.println("Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-				req.transactionID = transactionId;
+				req.transactionID = transactionID;
 				this.handleRequest(req);
 
 				return rd;
