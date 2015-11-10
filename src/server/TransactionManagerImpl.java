@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.Set;
 
 import shared.LockManager.DeadlockException;
@@ -14,14 +13,14 @@ import shared.LockManager.LockManager;
 public class TransactionManagerImpl implements TransactionManager {
 	public ResourceManager rm;
 	//lock data using following scheme: (flight|car|room|customer) + ID
-	LockManager lm;
-    Set<Integer> activeTransactions;
-	int transactionCounter;
-	String transactionLocation;
-	
+	private LockManager lm;
+    private ActiveTransactionThread activeTransactions;
+	private int transactionCounter;
+	private String transactionLocation;
+		
 	public static void main(String args[]){
 		
-		TransactionManager tm = new TransactionManagerImpl(new ResourceManagerImpl(), new LockManager(), 1);
+		TransactionManager tm = new TransactionManagerImpl(new ResourceManagerImpl(), new LockManager(), 1, true);
 		int txnID1 = tm.startTransaction();
 		int txnID2 = tm.startTransaction();
 		try {
@@ -40,9 +39,26 @@ public class TransactionManagerImpl implements TransactionManager {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
-		
-		
 	}
+	
+	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID, boolean TTLHere){
+		this.rm = rm;
+		this.lm = lm;
+		this.activeTransactions = new ActiveTransactionThread(this);
+		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID +  "-transactions";
+		File txnFolder = Paths.get(this.transactionLocation).toFile();
+		//Make folder if it does not exist
+		txnFolder.mkdirs();
+		this.transactionCounter = getMostRecentCommitNumber();
+		System.out.println("TransactionCounter initialized to " + transactionCounter);
+		if (transactionCounter > 0) {
+			rm.readOldStateFromFile("commitedTxn"+transactionCounter, transactionLocation);
+		}
+		if (TTLHere) {
+			this.activeTransactions.start();
+		}
+	}
+
 	private int getMostRecentCommitNumber(){
 		int largestTxn = 0;
 		File txnFolder = Paths.get(this.transactionLocation).toFile();
@@ -62,20 +78,6 @@ public class TransactionManagerImpl implements TransactionManager {
 		}
 		return largestTxn;
 	}
-	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID){
-		this.rm = rm;
-		this.lm = lm;
-		this.activeTransactions = new HashSet<Integer>();
-		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID +  "-transactions";
-		File txnFolder = Paths.get(this.transactionLocation).toFile();
-		//Make folder if it does not exist
-		txnFolder.mkdirs();
-		this.transactionCounter = getMostRecentCommitNumber();
-		System.out.println("TransactionCounter initialized to " + transactionCounter);
-		if (transactionCounter > 0) {
-			rm.readOldStateFromFile("commitedTxn"+transactionCounter, transactionLocation);
-		}		
-	}
 	
 	@Override
 	public synchronized int startTransaction() {
@@ -88,18 +90,19 @@ public class TransactionManagerImpl implements TransactionManager {
 	
 	@Override
 	public int enlist(int id) {
-		String fileName = "oldState_txn" + id;
-		rm.writeDataToFile(fileName, transactionLocation);
-		activeTransactions.add(id);
+		if (activeTransactions.contains(id)) {
+			activeTransactions.signalTransaction(id);
+		} else {
+			String fileName = "oldState_txn" + id;
+			rm.writeDataToFile(fileName, transactionLocation);
+			activeTransactions.add(id);
+		}
 		return id;
 	}
 
 	@Override
 	public synchronized boolean commitTransaction(int transactionID) throws AbortedTransactionException, TransactionNotActiveException{
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			return false;
-		}
+		activeTransactions.signalTransaction(transactionID);
 		//write new commit
 		if(!rm.writeDataToFile("commitedTxn"+transactionID, transactionLocation)){
 			abortTransaction(transactionID);
@@ -125,10 +128,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 	@Override
 	public synchronized boolean abortTransaction(int transactionID) throws TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			return false;
-		}
+		activeTransactions.signalTransaction(transactionID);
 		int mostRecentCommit = getMostRecentCommitNumber();
 		if(transactionID > mostRecentCommit){
 			rm.readOldStateFromFile("oldState_txn"+transactionID, transactionLocation);
@@ -148,7 +148,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 	@Override
 	public boolean abortAllActiveTransactions(){
-		Set<Integer> activeTransactionsCopy = new HashSet<Integer>(activeTransactions);
+		Set<Integer> activeTransactionsCopy = activeTransactions.getAllActiveTransactions();
 		for( int transactionID : activeTransactionsCopy){
 			try {
 				this.abortTransaction(transactionID);
@@ -160,10 +160,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 	@Override
 	public boolean addFlight(int id, int flightNumber, int numSeats, int flightPrice, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
 			return rm.addFlight(id, flightNumber, numSeats, flightPrice);
@@ -177,10 +174,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean deleteFlight(int id, int flightNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
 			return rm.deleteFlight(id, flightNumber);
@@ -194,10 +188,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryFlight(int id, int flightNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
 			return rm.queryFlight(id, flightNumber);
@@ -211,10 +202,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryFlightPrice(int id, int flightNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
 			return rm.queryFlightPrice(id, flightNumber);
@@ -228,10 +216,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean addCars(int id, String location, int numCars, int carPrice, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
 			return rm.addCars(id, location, numCars, carPrice);
@@ -245,10 +230,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean deleteCars(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
 			return rm.deleteCars(id, location);
@@ -262,10 +244,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryCars(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
 			return rm.queryCars(id, location);
@@ -279,10 +258,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryCarsPrice(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
 			return rm.queryCarsPrice(id, location);
@@ -296,10 +272,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean addRooms(int id, String location, int numRooms, int roomPrice, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
 			return rm.addRooms(id, location, numRooms, roomPrice);
@@ -313,10 +286,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean deleteRooms(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
 			return rm.deleteRooms(id, location);
@@ -330,10 +300,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryRooms(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
 			return rm.queryRooms(id, location);
@@ -347,10 +314,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryRoomsPrice(int id, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
 			return rm.queryRoomsPrice(id, location);
@@ -364,10 +328,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int newCustomer(int id, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			//No RMHashtable key associated with new customer. Instead lock string "newcustomer"
 			lm.Lock(transactionID, "newcustomer", LockManager.WRITE);
@@ -382,10 +343,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean newCustomerId(int id, int customerNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			//No RMHashtable key associated with new customer. Instead lock string "newcustomer"
 			lm.Lock(transactionID, "newcustomer", LockManager.WRITE);
@@ -400,10 +358,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean deleteCustomer(int id, int customerNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
 			return rm.deleteCustomer(id, customerNumber);
@@ -417,10 +372,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public String queryCustomerInfo(int id, int customerNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.READ);
 			return rm.queryCustomerInfo(id, customerNumber);
@@ -434,10 +386,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean reserveFlight(int id, int customerNumber, int flightNumber, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
@@ -452,10 +401,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean reserveCar(int id, int customerNumber, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
@@ -470,10 +416,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean reserveRoom(int id, int customerNumber, String location, int transactionID) throws AbortedTransactionException, TransactionNotActiveException {
-		if(!activeTransactions.contains(transactionID)){
-			//can't perform actions on non-active transaction
-			throw new TransactionNotActiveException();
-		}
+		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
