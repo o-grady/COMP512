@@ -110,14 +110,10 @@ public class WebServer {
     		String message = null;
 			try {
 				response = middlewareConnection.sendRequest(req);
-				if(response.stringResponse != null){
-					message = response.stringResponse;
-				}else if(response.intResponse != -1){
-					message = "" + response.intResponse;
-				}else{
-					message = "" + response.booleanResponse;
+				if(response.data != null) {
+					message = "Data: " + (String) response.data;
 				}
-				if(response.additionalMessage != null){
+				if(response.additionalMessage != null) {
 					message += ", Message: " + response.additionalMessage;
 				}
 	    		System.out.println("Response recieved " + message);

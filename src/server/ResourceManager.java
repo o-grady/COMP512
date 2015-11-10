@@ -16,8 +16,6 @@
 
 package server;
 
-import java.util.*;
-
 public interface ResourceManager {
     
     // Flight operations //
@@ -110,11 +108,6 @@ public interface ResourceManager {
 
     /* Reserve a room at this location. */    
     public boolean reserveRoom(int id, int customerNumber, String location); 
-
-
-    /* Reserve an itinerary. */    
-    public boolean reserveItinerary(int id, int customerNumber, Vector flightNumbers, 
-                                    String location, boolean car, boolean room);
     			
     /* Write data to file */
     public boolean writeDataToFile(String fileName, String path);

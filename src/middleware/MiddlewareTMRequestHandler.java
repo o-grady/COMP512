@@ -1,5 +1,6 @@
 package middleware;
 
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -13,6 +14,7 @@ import shared.IRequestHandler;
 import shared.RequestDescriptor;
 import shared.RequestType;
 import shared.ResponseDescriptor;
+import shared.ResponseType;
 import shared.ServerConnection;
 
 public class MiddlewareTMRequestHandler implements IRequestHandler {	
@@ -21,11 +23,14 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	class TransactionDescriptor {
 		TransactionDescriptor() {
 			super();
+			this.hasStarted = new EnumMap<ServerMode, Boolean>(ServerMode.class);
+			this.hasStarted.put(ServerMode.CAR, false);
+			this.hasStarted.put(ServerMode.FLIGHT, false);
+			this.hasStarted.put(ServerMode.ROOM, false);
+			this.hasStarted.put(ServerMode.CUSTOMER, false);
 			this.lastActive = System.currentTimeMillis();
 		}
-		public boolean roomStarted = false;
-		public boolean carStarted = false;
-		public boolean flightStarted = false;
+		public Map<ServerMode, Boolean> hasStarted;
 		public long lastActive = 0;
 	}
 	
@@ -70,6 +75,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		boolean boolResponse = false;
 		String stringResponse = null;
 		ServerMode mode = null;
+		ResponseType responseType = null;
 		int transactionID = request.transactionID;
 		try{
 			if (activeTxns.containsKey(transactionID)) {
@@ -97,7 +103,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			case QUERYFLIGHT:
 			case QUERYFLIGHTPRICE:
 			case RESERVEFLIGHT:
-				mode = ServerMode.PLANE;
+				mode = ServerMode.FLIGHT;
 				break;
 			case DELETEROOM:
 			case NEWROOM:
@@ -120,41 +126,17 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		    case COMMIT:
 	            System.out.println("COMMIT received");
 	            boolResponse = tm.commitTransaction(transactionID);
-	            if (activeTxns.get(transactionID).carStarted) {
-	            	ServerConnection sc = cm.getConnection(ServerMode.CAR);
-	            	ResponseDescriptor rd = sc.sendRequest(request);
-	            	boolResponse = boolResponse && rd.booleanResponse; 
-	            }
-	            if (activeTxns.get(transactionID).flightStarted) {
-	            	ServerConnection sc = cm.getConnection(ServerMode.PLANE);
-	            	ResponseDescriptor rd = sc.sendRequest(request);
-	            	boolResponse = boolResponse && rd.booleanResponse; 
-	            }
-	            if (activeTxns.get(transactionID).roomStarted) {
-	            	ServerConnection sc = cm.getConnection(ServerMode.ROOM);
-	            	ResponseDescriptor rd = sc.sendRequest(request);
-	            	boolResponse = boolResponse && rd.booleanResponse; 
-	            }
+	            
+	            boolResponse = boolResponse && this.sendRequestToStarted(request);
+
 	            activeTxns.remove(transactionID);
 	            break;
 		    case ABORT:
 	            System.out.println("ABORT received");
 	            boolResponse = tm.abortTransaction(transactionID);
-	            if (activeTxns.get(transactionID).carStarted) {
-	            	ServerConnection sc = cm.getConnection(ServerMode.CAR);
-	            	ResponseDescriptor rd = sc.sendRequest(request);
-	            	boolResponse = boolResponse && rd.booleanResponse; 
-	            }
-	            if (activeTxns.get(transactionID).flightStarted) {
-	            	ServerConnection sc = cm.getConnection(ServerMode.PLANE);
-	            	ResponseDescriptor rd = sc.sendRequest(request);
-	            	boolResponse = boolResponse && rd.booleanResponse; 
-	            }
-	            if (activeTxns.get(transactionID).roomStarted) {
-	            	ServerConnection sc = cm.getConnection(ServerMode.ROOM);
-	            	ResponseDescriptor rd = sc.sendRequest(request);
-	            	boolResponse = boolResponse && rd.booleanResponse; 
-	            }
+	            
+	            boolResponse = boolResponse && this.sendRequestToStarted(request);
+	            
 	            activeTxns.remove(transactionID);
 	            break;
 		    case SHUTDOWN:
@@ -194,7 +176,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 					// enlist the RM if not already started
 					this.checkAndEnlistAll(transactionID);
 					// check for abort condition
-					if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
+					if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
 						System.out.println("Aborting Transaction " + transactionID);
 						RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 						req.transactionID = transactionID;
@@ -203,7 +185,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 						for( ServerConnection connection : cm.getAllConnections()){
 							rd = connection.sendRequest(request);
 							// check for abort condition
-							if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
+							if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
 								System.out.println("Aborting Transaction " + transactionID);
 								RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 								req.transactionID = transactionID;
@@ -212,12 +194,12 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 						}
 					}
 					
-					return rh.handleRequest(request);
+					return rd;
 				}
 			} else if (cm.modeIsConnected(mode)) {
 				this.checkAndEnlist(mode, transactionID);
 				ResponseDescriptor rd = cm.getConnection(mode).sendRequest(request); 
-				if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
+				if (rd.data != null && (rd.data.equals("TransactionNotActive") || rd.data.equals("AbortedTransaction"))) {
 					System.out.println("Aborting Transaction " + transactionID);
 					RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 					req.transactionID = transactionID;
@@ -230,14 +212,20 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			
 		//Transaction problems are returned in stringResponse
 		} catch (TransactionNotActiveException e){
+			responseType = ResponseType.ERROR;
 			stringResponse = "TransactionNotActive";
 		} catch (AbortedTransactionException e) {
+			responseType = ResponseType.ABORT;
 			stringResponse = "AbortedTransaction";
 		} catch (Exception e) {
+			responseType = ResponseType.ERROR;
 			stringResponse = e.getMessage();
 			e.printStackTrace();
 		}
-		if(stringResponse != null){
+		if (responseType != null) {
+			return new ResponseDescriptor(responseType, stringResponse);
+		}
+		else if(stringResponse != null){
 			return new ResponseDescriptor(stringResponse);
 		}else if(intResponse != -1){
 			return new ResponseDescriptor(intResponse);
@@ -246,22 +234,32 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		}
 	}
 	
+	private boolean sendRequestToStarted(RequestDescriptor request) throws Exception {
+		boolean boolResponse = true;
+		
+        for (ServerMode sm : ServerMode.values()) {
+            if (activeTxns.get(request.transactionID).hasStarted.get(sm)) {
+            	ServerConnection sc = cm.getConnection(sm);
+            	ResponseDescriptor rd = sc.sendRequest(request);
+            	if (rd.responseType == ResponseType.BOOLEAN) {
+            		boolResponse = boolResponse && (boolean) rd.data; 
+            	} else if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
+            		boolResponse = false;
+            	}
+            	
+            }
+        }
+		return boolResponse;
+	}
+	
 	private void checkAndEnlist(ServerMode mode, int transactionID) {
 		ServerConnection sc = cm.getConnection(mode);
 		RequestDescriptor req = new RequestDescriptor(RequestType.ENLIST);
 		req.transactionID = transactionID;
 		try {
-			if (mode == ServerMode.CAR && !activeTxns.get(transactionID).carStarted) {
+			if (!activeTxns.get(transactionID).hasStarted.get(mode)) {
 				sc.sendRequest(req);
-				activeTxns.get(transactionID).carStarted = true;
-			}
-			if (mode == ServerMode.PLANE && !activeTxns.get(transactionID).flightStarted) {
-				sc.sendRequest(req);
-				activeTxns.get(transactionID).flightStarted = true;
-			}
-			if (mode == ServerMode.ROOM && !activeTxns.get(transactionID).roomStarted) {
-				sc.sendRequest(req);
-				activeTxns.get(transactionID).roomStarted = true;
+				activeTxns.get(transactionID).hasStarted.put(mode, true);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -272,21 +270,13 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		RequestDescriptor req = new RequestDescriptor(RequestType.ENLIST);
 		req.transactionID = transactionID;
 		try {
-			if (!activeTxns.get(transactionID).carStarted) {
-				ServerConnection sc = cm.getConnection(ServerMode.CAR);
-				sc.sendRequest(req);
-				activeTxns.get(transactionID).carStarted = true;
-			}
-			if (!activeTxns.get(transactionID).flightStarted) {
-				ServerConnection sc = cm.getConnection(ServerMode.PLANE);
-				sc.sendRequest(req);
-				activeTxns.get(transactionID).flightStarted = true;
-			}
-			if (!activeTxns.get(transactionID).roomStarted) {
-				ServerConnection sc = cm.getConnection(ServerMode.ROOM);
-				sc.sendRequest(req);
-				activeTxns.get(transactionID).roomStarted = true;
-			}
+	        for (ServerMode mode : ServerMode.values()) {
+	            if (mode != ServerMode.CUSTOMER && !activeTxns.get(transactionID).hasStarted.get(mode)) {
+	            	ServerConnection sc = cm.getConnection(mode);
+	            	sc.sendRequest(req);
+	            	activeTxns.get(transactionID).hasStarted.put(mode, true);
+	            }
+	        }
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -297,18 +287,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		req.transactionID = transactionID;
 		try {
 			this.tm.enlist(transactionID);
-			if (activeTxns.get(transactionID).carStarted) {
-				ServerConnection sc = cm.getConnection(ServerMode.CAR);
-				sc.sendRequest(req);
-			}
-			if (activeTxns.get(transactionID).flightStarted) {
-				ServerConnection sc = cm.getConnection(ServerMode.PLANE);
-				sc.sendRequest(req);
-			}
-			if (activeTxns.get(transactionID).roomStarted) {
-				ServerConnection sc = cm.getConnection(ServerMode.ROOM);
-				sc.sendRequest(req);
-			}
+			this.sendRequestToStarted(req);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -318,9 +297,13 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		String custInfo = "";
 		String startLine = null;
 		String endLine = null;
-		for( ServerConnection connection : cm.getAllConnections()){
-			String resp = connection.sendRequest(request).stringResponse;
-			String[] lines = resp.split("\n");
+		for( ServerConnection connection : cm.getAllConnections() ){
+			ResponseDescriptor rd = connection.sendRequest(request);
+			String data = (String) rd.data;
+			if (rd.responseType == ResponseType.ERROR || rd.responseType == ResponseType.ABORT) {
+				throw new Exception("Error. Data: " + (String) data + ", Message: " + rd.additionalMessage);
+			}
+			String[] lines = data.split("\n");
 			for (int i = 1 ; i < lines.length - 1 ; i++){
 				custInfo += lines[i] + "\n";
 			}
@@ -338,7 +321,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		ResponseDescriptor res = new ResponseDescriptor();
 		//return if no flights
 		if(request.flightNumbers == null || request.flightNumbers.isEmpty()){
-			res.booleanResponse = false;
+			res.data = false;
 			res.additionalMessage = "No flight numbers requested";
 			return res;
 		}
@@ -356,15 +339,15 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			req2.customerNumber = customerNumber;
 			req2.flightNumber = request.flightNumbers.elementAt(i);
 			ResponseDescriptor rd = this.handleRequest(req2);
-			if (!rd.booleanResponse) {
-				res.booleanResponse = false;
+			if (rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
+				res.data = false;
 				res.additionalMessage = "Problem booking " + req2.flightNumber;
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 				req.transactionID = transactionID;
 				this.handleRequest(req);
 				return res;
 			}
-			if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
+			if (rd.responseType == ResponseType.ERROR || rd.responseType == ResponseType.ABORT) {
 				System.out.println("Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 				req.transactionID = transactionID;
@@ -380,15 +363,15 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			req2.customerNumber = customerNumber;
 			req2.location = location;
 			ResponseDescriptor rd = this.handleRequest(req2);
-			if (!rd.booleanResponse ) {
-				res.booleanResponse = false;
+			if (rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
+				res.data = false;
 				res.additionalMessage = "Problem booking car at " + location;
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 				req.transactionID = transactionID;
 				this.handleRequest(req);
 				return res;
 			}
-			if (rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
+			if (rd.responseType == ResponseType.ERROR || rd.responseType == ResponseType.ABORT) {
 				System.out.println("Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 				req.transactionID = transactionID;
@@ -403,15 +386,15 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			req2.customerNumber = customerNumber;
 			req2.location = location;
 			ResponseDescriptor rd = this.handleRequest(req2);
-			if (!rd.booleanResponse) {
-				res.booleanResponse = false;
+			if (rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
+				res.data = false;
 				res.additionalMessage = "Problem booking room at " + location;
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 				req.transactionID = transactionID;
 				this.handleRequest(req);
 				return res;
 			}
-			if (!rd.booleanResponse && rd.stringResponse != null && (rd.stringResponse.equals("TransactionNotActive") || rd.stringResponse.equals("AbortedTransaction"))) {
+			if (rd.responseType == ResponseType.ERROR || rd.responseType == ResponseType.ABORT) {
 				System.out.println("Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 				req.transactionID = transactionID;
@@ -420,7 +403,8 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				return rd;
 			}
 		}
-		res.booleanResponse = true;
+		res.responseType = ResponseType.BOOLEAN;
+		res.data = true;
 		res.additionalMessage = "Success!";
 		return res;
 	}

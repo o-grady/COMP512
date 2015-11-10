@@ -7,7 +7,6 @@ package server;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -26,7 +25,7 @@ public class ResourceManagerImpl implements server.ResourceManager {
     // Read a data item.
     private RMItem readData(int id, String key) {
         synchronized(m_itemHT) {
-            return (RMItem) m_itemHT.get(key);
+            return m_itemHT.get(key);
         }
     }
 
@@ -40,7 +39,7 @@ public class ResourceManagerImpl implements server.ResourceManager {
     // Remove the item out of storage.
     protected RMItem removeData(int id, String key) {
         synchronized(m_itemHT) {
-            return (RMItem) m_itemHT.remove(key);
+            return m_itemHT.remove(key);
         }
     }
     
@@ -360,8 +359,8 @@ public class ResourceManagerImpl implements server.ResourceManager {
             // Increase the reserved numbers of all reservable items that 
             // the customer reserved. 
             RMHashtable reservationHT = cust.getReservations();
-            for (Enumeration e = reservationHT.keys(); e.hasMoreElements();) {        
-                String reservedKey = (String) (e.nextElement());
+            for (Enumeration<String> e = reservationHT.keys(); e.hasMoreElements();) {        
+                String reservedKey = (e.nextElement());
                 ReservedItem reservedItem = cust.getReservedItem(reservedKey);
                 Trace.info("RM::deleteCustomer(" + id + ", " + customerId + "): " 
                         + "deleting " + reservedItem.getCount() + " reservations "
@@ -433,16 +432,7 @@ public class ResourceManagerImpl implements server.ResourceManager {
     public boolean reserveRoom(int id, int customerId, String location) {
         return reserveItem(id, customerId, Room.getKey(location), location);
     }
-    
 
-    // Reserve an itinerary.
-    @Override
-    public boolean reserveItinerary(int id, int customerId, Vector flightNumbers,
-                                    String location, boolean car, boolean room) {
-        return false;
-    }
-
-	@Override
 	public boolean writeDataToFile(String fileName, String path) {
 		FileOutputStream fileOut = null;
 		ObjectOutputStream objectOut = null;
@@ -463,7 +453,6 @@ public class ResourceManagerImpl implements server.ResourceManager {
 		}
 	}
 
-	@Override
 	public boolean readOldStateFromFile(String fileName, String path) {
 		FileInputStream fileIn = null;
 		ObjectInputStream objectIn = null;

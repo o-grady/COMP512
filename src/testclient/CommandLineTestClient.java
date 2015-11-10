@@ -87,7 +87,10 @@ public class CommandLineTestClient {
         		try {
             		request = buildRequest(rt, arguments);
             		reply = sendRequest(request);
-            		System.out.println("String: " + reply.stringResponse + ", Int: " + reply.intResponse + ", Bool: " + reply.booleanResponse);
+            		System.out.println("ResponseType: " + reply.responseType + ", Data: " + reply.data + ", Message: " + reply.additionalMessage);
+        		}
+        		catch (java.net.SocketException ex) {
+        			System.out.println("Failure: connection closed");
         		}
         		catch (Exception ex) {
         			System.out.println("Failure: " + ex.getMessage());

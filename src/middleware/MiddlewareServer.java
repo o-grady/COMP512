@@ -28,7 +28,7 @@ public class MiddlewareServer {
     public MiddlewareServer(int port) {
     	cm = new ConnectionManager();
     	customerRM = new ResourceManagerImpl();
-    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), 45654, true);
+    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), 45654);
     	customerTMRH = new TMRequestHandler(customerTM);    	
     	rh = new MiddlewareTMRequestHandler(cm, customerTM, customerTMRH);
     	wm = new WelcomeManager(rh, port);
@@ -38,7 +38,7 @@ public class MiddlewareServer {
     		int flightPort, String roomHost, int roomPort) {
     	cm = new ConnectionManager();
     	customerRM = new ResourceManagerImpl();
-    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), 45654, true);
+    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), 45654);
     	customerTMRH = new TMRequestHandler(customerTM);
     	rh = new MiddlewareTMRequestHandler(cm, customerTM, customerTMRH);
     	wm = new WelcomeManager(rh, port);
@@ -55,7 +55,7 @@ public class MiddlewareServer {
 					serverPort = carPort;
 					break;
 				case 1:
-					mode = ServerMode.PLANE;
+					mode = ServerMode.FLIGHT;
 					serverHost = flightHost;
 					serverPort = flightPort;
 					break;
@@ -206,7 +206,7 @@ public class MiddlewareServer {
         		mode = ServerMode.CAR;
         		break;
         	case "2":
-        		mode = ServerMode.PLANE;
+        		mode = ServerMode.FLIGHT;
         		break;
         	case "3":
         		mode = ServerMode.ROOM;

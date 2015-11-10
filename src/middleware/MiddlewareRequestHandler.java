@@ -6,6 +6,7 @@ import shared.IRequestHandler;
 import shared.RequestDescriptor;
 import shared.RequestType;
 import shared.ResponseDescriptor;
+import shared.ResponseType;
 import shared.ServerConnection;
 
 public class MiddlewareRequestHandler implements IRequestHandler {
@@ -38,7 +39,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			case QUERYFLIGHT:
 			case QUERYFLIGHTPRICE:
 			case RESERVEFLIGHT:
-				mode = ServerMode.PLANE;
+				mode = ServerMode.FLIGHT;
 				break;
 			case DELETEROOM:
 			case NEWROOM:
@@ -88,8 +89,12 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		String startLine = null;
 		String endLine = null;
 		for( ServerConnection connection : cm.getAllConnections()){
-			String resp = connection.sendRequest(request).stringResponse;
-			String[] lines = resp.split("\n");
+			ResponseDescriptor rd = connection.sendRequest(request);
+			String data = (String) rd.data;
+			if (rd.responseType == ResponseType.ERROR || rd.responseType == ResponseType.ABORT) {
+				throw new Exception("Error. Data: " + (String) data + ", Message: " + rd.additionalMessage);
+			}
+			String[] lines = data.split("\n");
 			for (int i = 1 ; i < lines.length - 1 ; i++){
 				custInfo += lines[i] + "\n";
 			}
@@ -112,7 +117,7 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 		ResponseDescriptor res = new ResponseDescriptor();
 		//return if no flights
 		if(request.flightNumbers == null || request.flightNumbers.isEmpty()){
-			res.booleanResponse = false;
+			res.data = false;
 			res.additionalMessage = "No flight numbers requested";
 			return res;
 		}
@@ -121,8 +126,9 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			req2 = new RequestDescriptor(RequestType.QUERYFLIGHT);
 			req2.transactionID = transactionID;
 			req2.flightNumber = request.flightNumbers.elementAt(i);
-			if( this.handleRequest(req2).intResponse <= 0){
-				res.booleanResponse = false;
+			ResponseDescriptor rd = this.handleRequest(req2);
+			if( rd.responseType == ResponseType.INTEGER && (int)rd.data <= 0) {
+				res.data = false;
 				res.additionalMessage = "Flight " + req2.flightNumber + " is full";
 				return res;
 			}
@@ -132,8 +138,9 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			req2 = new RequestDescriptor(RequestType.QUERYROOM);
 			req2.transactionID = transactionID;
 			req2.location = location;
-			if(this.handleRequest(req2).intResponse <= 0){
-				res.booleanResponse = false;
+			ResponseDescriptor rd = this.handleRequest(req2);
+			if( rd.responseType == ResponseType.INTEGER && (int)rd.data <= 0) {
+				res.data = false;
 				res.additionalMessage = "No car available at " + location;
 				return res;
 			}
@@ -142,8 +149,9 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			req2 = new RequestDescriptor(RequestType.QUERYCAR);
 			req2.transactionID = transactionID;
 			req2.location = location;
-			if(this.handleRequest(req2).intResponse <= 0){
-				res.booleanResponse = false;
+			ResponseDescriptor rd = this.handleRequest(req2);
+			if( rd.responseType == ResponseType.INTEGER && (int)rd.data <= 0) {
+				res.data = false;
 				res.additionalMessage = "No room available at " + location;
 				return res;
 			}
@@ -154,8 +162,9 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			req2.transactionID = transactionID;
 			req2.customerNumber = customerNumber;
 			req2.flightNumber = request.flightNumbers.elementAt(i);
-			if( !this.handleRequest(req2).booleanResponse){
-				res.booleanResponse = false;
+			ResponseDescriptor rd = this.handleRequest(req2);
+			if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
+				res.data = false;
 				res.additionalMessage = "Problem booking " + req2.flightNumber;
 				return res;
 			}
@@ -166,8 +175,9 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			req2.transactionID = transactionID;
 			req2.customerNumber = customerNumber;
 			req2.location = location;
-			if(!this.handleRequest(req2).booleanResponse){
-				res.booleanResponse = false;
+			ResponseDescriptor rd = this.handleRequest(req2);
+			if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
+				res.data = false;
 				res.additionalMessage = "Problem booking car at " + location;
 				return res;
 			}
@@ -177,13 +187,14 @@ public class MiddlewareRequestHandler implements IRequestHandler {
 			req2.transactionID = transactionID;
 			req2.customerNumber = customerNumber;
 			req2.location = location;
-			if(this.handleRequest(req2).booleanResponse){
-				res.booleanResponse = false;
+			ResponseDescriptor rd = this.handleRequest(req2);
+			if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
+				res.data = false;
 				res.additionalMessage = "Problem booking room at " + location;
 				return res;
 			}
 		}
-		res.booleanResponse = true;
+		res.data = true;
 		res.additionalMessage = "Success!";
 		return res;
 	}

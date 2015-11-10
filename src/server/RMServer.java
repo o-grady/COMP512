@@ -35,7 +35,7 @@ public class RMServer {
         	scanner.close();
         	return;
         }
-        TransactionManager tm = new TransactionManagerImpl(rm, lm, serverID, true);
+        TransactionManager tm = new TransactionManagerImpl(rm, lm, serverID);
     	TMRequestHandler rh = new TMRequestHandler(tm);
 
         wm = new WelcomeManager(rh, port);

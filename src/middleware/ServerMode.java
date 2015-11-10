@@ -2,7 +2,7 @@ package middleware;
 
 public enum ServerMode {
 	CAR,
-	PLANE,
+	FLIGHT,
 	ROOM,
 	CUSTOMER
 }

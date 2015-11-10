@@ -35,7 +35,7 @@ class MyThread extends Thread {
 		    }
 	
 		    try {
-		        this.sleep (4000);
+		        Thread.sleep (4000);
 		    }
 		    catch (InterruptedException e) { }
 	
@@ -57,7 +57,7 @@ class MyThread extends Thread {
 		    }
 	
 		    try {
-		        this.sleep (1000);
+		        Thread.sleep (1000);
 		    }
 		    catch (InterruptedException e) { }
 	

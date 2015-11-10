@@ -12,7 +12,12 @@ package server;
 
 public class ReservedItem extends RMItem {
 
-    private int m_nCount;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = -2457912145496139433L;
+	
+	private int m_nCount;
     private int m_nPrice;
     private String m_strReservableItemKey;
     private String m_strLocation;

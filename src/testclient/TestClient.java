@@ -6,6 +6,7 @@ import java.util.Vector;
 import shared.RequestDescriptor;
 import shared.RequestType;
 import shared.ResponseDescriptor;
+import shared.ResponseType;
 import shared.ServerConnection;
 
 public class TestClient {
@@ -31,7 +32,8 @@ public class TestClient {
 		r.location = "Montreal";
 		r.car = false;
 		r.room = false;
-		if(TestClient.sendRequest(r).booleanResponse == false){
+		ResponseDescriptor rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -50,7 +52,8 @@ public class TestClient {
 		r = new RequestDescriptor(RequestType.QUERYCAR);
 		r.transactionID = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest( r ).intResponse == 0){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.INTEGER && (int)rd.data == 0) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -63,7 +66,8 @@ public class TestClient {
 		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest(r).booleanResponse == false){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -77,7 +81,8 @@ public class TestClient {
 		r.location = "Montreal";
 		r.numCars = 1;
 		r.price = 5;
-		if(TestClient.sendRequest(r).booleanResponse == true){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && (boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -89,7 +94,8 @@ public class TestClient {
 		r = new RequestDescriptor(RequestType.QUERYCAR);
 		r.transactionID = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest( r ).intResponse == 1){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.INTEGER && (int)rd.data == 1) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -102,7 +108,8 @@ public class TestClient {
 		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest(r).booleanResponse == true){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && (boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -114,7 +121,8 @@ public class TestClient {
 		r = new RequestDescriptor(RequestType.QUERYCAR);
 		r.transactionID = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest( r ).intResponse == 0){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.INTEGER && (int)rd.data == 0) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -127,7 +135,8 @@ public class TestClient {
 		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest(r).booleanResponse == false){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -140,7 +149,8 @@ public class TestClient {
 		r = new RequestDescriptor(RequestType.QUERYFLIGHT);
 		r.transactionID = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest( r ).intResponse == 0){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.INTEGER && (int)rd.data == 0) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -153,7 +163,8 @@ public class TestClient {
 		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest(r).booleanResponse == false){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -167,7 +178,8 @@ public class TestClient {
 		r.location = "Montreal";
 		r.numSeats = 1;
 		r.price = 5;
-		if(TestClient.sendRequest(r).booleanResponse == true){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && (boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -179,7 +191,8 @@ public class TestClient {
 		r = new RequestDescriptor(RequestType.QUERYFLIGHT);
 		r.transactionID = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest( r ).intResponse == 1){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.INTEGER && (int)rd.data == 1) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -192,7 +205,8 @@ public class TestClient {
 		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest(r).booleanResponse == true){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && (boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -204,7 +218,8 @@ public class TestClient {
 		r = new RequestDescriptor(RequestType.QUERYFLIGHT);
 		r.transactionID = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest( r ).intResponse == 0){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.INTEGER && (int)rd.data == 0) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -217,7 +232,8 @@ public class TestClient {
 		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest(r).booleanResponse == false){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -230,7 +246,8 @@ public class TestClient {
 		r = new RequestDescriptor(RequestType.QUERYROOM);
 		r.transactionID = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest( r ).intResponse == 0){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.INTEGER && (int)rd.data == 0) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -243,7 +260,8 @@ public class TestClient {
 		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest(r).booleanResponse == false){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -257,7 +275,8 @@ public class TestClient {
 		r.location = "Montreal";
 		r.numRooms = 1;
 		r.price = 5;
-		if(TestClient.sendRequest(r).booleanResponse == true){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && (boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -269,7 +288,8 @@ public class TestClient {
 		r = new RequestDescriptor(RequestType.QUERYROOM);
 		r.transactionID = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest( r ).intResponse == 1){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.INTEGER && (int)rd.data == 1) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -282,7 +302,8 @@ public class TestClient {
 		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest(r).booleanResponse == true){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && (boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -294,7 +315,8 @@ public class TestClient {
 		r = new RequestDescriptor(RequestType.QUERYROOM);
 		r.transactionID = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest( r ).intResponse == 0){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.INTEGER && (int)rd.data == 0) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -307,7 +329,8 @@ public class TestClient {
 		r.transactionID = 1;
 		r.customerNumber = 1;
 		r.location = "Montreal";
-		if(TestClient.sendRequest(r).booleanResponse == false){
+		rd = TestClient.sendRequest(r);
+		if( rd.responseType == ResponseType.BOOLEAN && !(boolean)rd.data) {
             System.out.println("Success!");
             successCount++;
         }else{
@@ -325,12 +348,8 @@ public class TestClient {
 		String message = null;
 		try {
 			response = middlewareConnection.sendRequest(req);
-			if(response.stringResponse != null){
-				message = response.stringResponse;
-			}else if(response.intResponse != -1){
-				message = "" + response.intResponse;
-			}else{
-				message = "" + response.booleanResponse;
+			if(response.data != null){
+				message = "Data: " + (String) response.data;
 			}
 			if(response.additionalMessage != null){
 				message += ", Message: " + response.additionalMessage;
