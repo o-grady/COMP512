@@ -1,7 +1,9 @@
 package middleware;
 
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import server.AbortedTransactionException;
 import server.TMRequestHandler;
@@ -13,12 +15,40 @@ import shared.RequestType;
 import shared.ResponseDescriptor;
 import shared.ServerConnection;
 
-public class MiddlewareTMRequestHandler implements IRequestHandler {
+public class MiddlewareTMRequestHandler implements IRequestHandler {	
+	private static final long TTL_INTERVAL = 60 * 1000;
 
 	class TransactionDescriptor {
+		TransactionDescriptor() {
+			super();
+			this.lastActive = System.currentTimeMillis();
+		}
 		public boolean roomStarted = false;
 		public boolean carStarted = false;
 		public boolean flightStarted = false;
+		public long lastActive = 0;
+	}
+	
+	class TTLThread extends Thread {
+		private MiddlewareTMRequestHandler rh;
+		TTLThread(MiddlewareTMRequestHandler rh) {
+			this.rh = rh;
+		}
+		public void run() {
+			while(true) {
+				Set<Integer> active = new HashSet<Integer>(this.rh.activeTxns.keySet());
+				for (int i : active) {
+					if (this.rh.activeTxns.get(i).lastActive + TTL_INTERVAL < System.currentTimeMillis()) {
+						activeTxns.remove(i);
+					}
+				}
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					break;
+				}
+			}
+		}
 	}
 	
 	private ConnectionManager cm;
@@ -30,7 +60,8 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		this.cm = cm;
 		this.tm = tm;
 		this.rh = rh;
-		this.activeTxns = new HashMap<Integer, TransactionDescriptor>();
+		this.activeTxns = new ConcurrentHashMap<Integer, TransactionDescriptor>();
+		new TTLThread(this).start();
 	}
 
 	@Override
@@ -41,8 +72,10 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		ServerMode mode = null;
 		int transactionID = request.transactionID;
 		try{
-			if (!activeTxns.containsKey(transactionID) && 
-					request.requestType != RequestType.ABORTALL && 
+			if (activeTxns.containsKey(transactionID)) {
+				this.signalRMKeepAlive(transactionID);
+				activeTxns.get(transactionID).lastActive = System.currentTimeMillis();
+			} else if (request.requestType != RequestType.ABORTALL && 
 					request.requestType != RequestType.SHUTDOWN && 
 					request.requestType != RequestType.STARTTXN) {
 				throw new TransactionNotActiveException();
@@ -145,6 +178,10 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            }
 	            
 	            break;
+		    case ENLIST:
+		    	// This is used to signal the local TM
+		    	System.out.println("ENLIST received");
+		    	this.tm.enlist(transactionID);
 			default:
 				break;
 			}
@@ -249,6 +286,28 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				ServerConnection sc = cm.getConnection(ServerMode.ROOM);
 				sc.sendRequest(req);
 				activeTxns.get(transactionID).roomStarted = true;
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+	
+	private void signalRMKeepAlive(int transactionID) {
+		RequestDescriptor req = new RequestDescriptor(RequestType.ENLIST);
+		req.transactionID = transactionID;
+		try {
+			this.tm.enlist(transactionID);
+			if (activeTxns.get(transactionID).carStarted) {
+				ServerConnection sc = cm.getConnection(ServerMode.CAR);
+				sc.sendRequest(req);
+			}
+			if (activeTxns.get(transactionID).flightStarted) {
+				ServerConnection sc = cm.getConnection(ServerMode.PLANE);
+				sc.sendRequest(req);
+			}
+			if (activeTxns.get(transactionID).roomStarted) {
+				ServerConnection sc = cm.getConnection(ServerMode.ROOM);
+				sc.sendRequest(req);
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
