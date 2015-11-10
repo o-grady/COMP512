@@ -440,6 +440,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		}
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
+			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
 			return rm.reserveFlight(id, customerNumber, flightNumber);
 		} catch (DeadlockException e) {
 			System.out.println("reserveFlight failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -457,6 +458,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		}
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
+			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
 			return rm.reserveCar(id, customerNumber, location);
 		} catch (DeadlockException e) {
 			System.out.println("reserveCar failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
@@ -474,6 +476,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		}
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
+			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
 			return rm.reserveRoom(id, customerNumber, location);
 		} catch (DeadlockException e) {
 			System.out.println("reserveRoom failed, could not aquire write lock for id "+ id+ " in transaction "+ transactionID);
