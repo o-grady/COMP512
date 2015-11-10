@@ -14,7 +14,6 @@ import shared.ServerConnection;
 import shared.WelcomeManager;
 import shared.LockManager.LockManager;
 
-
 public class MiddlewareServer {
 	
 	private WelcomeManager wm;
@@ -28,7 +27,7 @@ public class MiddlewareServer {
     public MiddlewareServer(int port) {
     	cm = new ConnectionManager();
     	customerRM = new ResourceManagerImpl();
-    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), 45654);
+    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), TransactionManagerImpl.RESERVED_ID);
     	customerTMRH = new TMRequestHandler(customerTM);    	
     	rh = new MiddlewareTMRequestHandler(cm, customerTM, customerTMRH);
     	wm = new WelcomeManager(rh, port);
@@ -38,7 +37,7 @@ public class MiddlewareServer {
     		int flightPort, String roomHost, int roomPort) {
     	cm = new ConnectionManager();
     	customerRM = new ResourceManagerImpl();
-    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), 45654);
+    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), TransactionManagerImpl.RESERVED_ID);
     	customerTMRH = new TMRequestHandler(customerTM);
     	rh = new MiddlewareTMRequestHandler(cm, customerTM, customerTMRH);
     	wm = new WelcomeManager(rh, port);

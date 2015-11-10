@@ -3,8 +3,6 @@ package testclient;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
-
 import shared.RequestDescriptor;
 import shared.RequestType;
 import shared.ResponseDescriptor;

@@ -305,6 +305,9 @@ public class CommandLineTestClient {
     public ResponseDescriptor sendRequest(RequestDescriptor rd) throws Exception {
 		try {
 			return this.middlewareConnection.sendRequest(rd);
+		} catch (java.net.SocketException ex) {
+			// this one is handled above
+			throw ex;
 		} catch (Exception ex) {
             System.out.println("EXCEPTION: ");
             System.out.println(ex.getMessage());

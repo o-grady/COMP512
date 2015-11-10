@@ -1,11 +1,5 @@
 package middleware;
 
-import java.util.EnumMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
 import server.AbortedTransactionException;
 import server.TMRequestHandler;
 import server.TransactionManager;
@@ -17,56 +11,18 @@ import shared.ResponseDescriptor;
 import shared.ResponseType;
 import shared.ServerConnection;
 
-public class MiddlewareTMRequestHandler implements IRequestHandler {	
-	private static final long TTL_INTERVAL = 60 * 1000;
-
-	class TransactionDescriptor {
-		TransactionDescriptor() {
-			super();
-			this.hasStarted = new EnumMap<ServerMode, Boolean>(ServerMode.class);
-			this.hasStarted.put(ServerMode.CAR, false);
-			this.hasStarted.put(ServerMode.FLIGHT, false);
-			this.hasStarted.put(ServerMode.ROOM, false);
-			this.hasStarted.put(ServerMode.CUSTOMER, false);
-			this.lastActive = System.currentTimeMillis();
-		}
-		public Map<ServerMode, Boolean> hasStarted;
-		public long lastActive = 0;
-	}
-	
-	class TTLThread extends Thread {
-		private MiddlewareTMRequestHandler rh;
-		TTLThread(MiddlewareTMRequestHandler rh) {
-			this.rh = rh;
-		}
-		public void run() {
-			while(true) {
-				Set<Integer> active = new HashSet<Integer>(this.rh.activeTxns.keySet());
-				for (int i : active) {
-					if (this.rh.activeTxns.get(i).lastActive + TTL_INTERVAL < System.currentTimeMillis()) {
-						activeTxns.remove(i);
-					}
-				}
-				try {
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					break;
-				}
-			}
-		}
-	}
-	
+public class MiddlewareTMRequestHandler implements IRequestHandler {
 	private ConnectionManager cm;
 	private TransactionManager tm;
 	private TMRequestHandler rh;
-	private Map<Integer, TransactionDescriptor> activeTxns;
+	private MiddlewareActiveTransactionThread activeTxns; 
 	
 	public MiddlewareTMRequestHandler(ConnectionManager cm, TransactionManager tm, TMRequestHandler rh) {
 		this.cm = cm;
 		this.tm = tm;
 		this.rh = rh;
-		this.activeTxns = new ConcurrentHashMap<Integer, TransactionDescriptor>();
-		new TTLThread(this).start();
+		this.activeTxns = new MiddlewareActiveTransactionThread();
+		this.activeTxns.start();
 	}
 
 	@Override
@@ -78,7 +34,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		ResponseType responseType = null;
 		int transactionID = request.transactionID;
 		try{
-			if (activeTxns.containsKey(transactionID)) {
+			if (activeTxns.contains(transactionID)) {
 				this.signalRMKeepAlive(transactionID);
 				activeTxns.get(transactionID).lastActive = System.currentTimeMillis();
 			} else if (request.requestType != RequestType.ABORTALL && 
@@ -121,7 +77,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			case STARTTXN:
 	            System.out.println("STARTTXN received");
 	            intResponse = tm.startTransaction();
-	            activeTxns.put(intResponse, new TransactionDescriptor());
+	            activeTxns.add(intResponse);
 	            break;
 		    case COMMIT:
 	            System.out.println("COMMIT received");
@@ -146,7 +102,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 					try {
 						connection.sendRequest(request);
 					} catch (java.net.SocketException ex) {
-						// eat the exception, this is expected we are shutting them down
+						// eat the exception, this is expected as we are shutting them down
 					} catch (Exception ex) {
 						// This is unexpected, set boolresponse to false...
 						boolResponse = false;
@@ -161,35 +117,34 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            
 	            break;
 		    case ENLIST:
-		    	// This is used to signal the local TM
+		    	// This is used to signal the local TM ONLY, other TMs are enlisted on an as needed basis
 		    	System.out.println("ENLIST received");
 		    	this.tm.enlist(transactionID);
 			default:
 				break;
 			}
 			
+			// handle customer related requests
 			if (mode == ServerMode.CUSTOMER) {
 				if (request.requestType == RequestType.QUERYCUSTOMER){
 					return this.queryCustomer(request);
 				} else {
+					// run the customer request on the local RM
 					ResponseDescriptor rd = rh.handleRequest(request);
-					// enlist the RM if not already started
-					this.checkAndEnlistAll(transactionID);
 					// check for abort condition
 					if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
-						System.out.println("Aborting Transaction " + transactionID);
-						RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-						req.transactionID = transactionID;
-						return this.handleRequest(req);
+						this.abortTransaction(transactionID);
+						return rd;
 					} else {
-						for( ServerConnection connection : cm.getAllConnections()){
+						// enlist the RMs if not already started
+						this.checkAndEnlistAll(transactionID);
+						// bounce the request out to all RMs
+						for(ServerConnection connection : cm.getAllConnections()) {
 							rd = connection.sendRequest(request);
 							// check for abort condition
 							if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
-								System.out.println("Aborting Transaction " + transactionID);
-								RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-								req.transactionID = transactionID;
-								return this.handleRequest(req);
+								this.abortTransaction(transactionID);
+								return rd;
 							}
 						}
 					}
@@ -199,11 +154,9 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			} else if (cm.modeIsConnected(mode)) {
 				this.checkAndEnlist(mode, transactionID);
 				ResponseDescriptor rd = cm.getConnection(mode).sendRequest(request); 
-				if (rd.data != null && (rd.data.equals("TransactionNotActive") || rd.data.equals("AbortedTransaction"))) {
-					System.out.println("Aborting Transaction " + transactionID);
-					RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
-					req.transactionID = transactionID;
-					this.handleRequest(req);
+				if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
+					this.abortTransaction(transactionID);
+					return rd;
 				}
 				return rd;
 			} else if (mode != null) {
@@ -232,6 +185,12 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		}else{
 			return new ResponseDescriptor(boolResponse);
 		}
+	}
+	
+	private void abortTransaction(int transactionID) {
+		RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
+		req.transactionID = transactionID;
+		this.handleRequest(req);
 	}
 	
 	private boolean sendRequestToStarted(RequestDescriptor request) throws Exception {

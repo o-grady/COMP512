@@ -11,6 +11,10 @@ import shared.LockManager.DeadlockException;
 import shared.LockManager.LockManager;
 
 public class TransactionManagerImpl implements TransactionManager {
+	private static final String DIR_SUFFIX = "-transactions";
+	private static final String COMMITED_STATE_PREFIX = "commitedTxn";
+	private static final String OLD_STATE_PREFIX = "oldState_txn";
+	public static final int RESERVED_ID = 4567654;
 	
 	public ResourceManager rm;
 	//lock data using following scheme: (flight|car|room|customer) + ID
@@ -23,7 +27,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		this.rm = rm;
 		this.lm = lm;
 		this.activeTransactions = new ActiveTransactionThread(this);
-		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID +  "-transactions";
+		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID + DIR_SUFFIX;
 		File txnFolder = Paths.get(this.transactionLocation).toFile();
 		
 		//Make folder if it does not exist
@@ -31,8 +35,35 @@ public class TransactionManagerImpl implements TransactionManager {
 		this.transactionCounter = getMostRecentCommitNumber();
 		System.out.println("TransactionCounter initialized to " + transactionCounter);
 		if (transactionCounter > 0) {
-			rm.readOldStateFromFile("commitedTxn"+transactionCounter, transactionLocation);
+			rm.readOldStateFromFile(COMMITED_STATE_PREFIX + transactionCounter, transactionLocation);
 		}
+		
+		// Clean up leftover files
+		File[] filesInTxnFolder =  txnFolder.listFiles();
+		for(int i = 0 ; i < filesInTxnFolder.length ; i++){
+			if(filesInTxnFolder[i].isFile()) {
+				String fileName = filesInTxnFolder[i].getName(); 
+				if (fileName.startsWith(COMMITED_STATE_PREFIX)) {
+					String noPrefix = filesInTxnFolder[i].getName().substring(COMMITED_STATE_PREFIX.length());
+					int txnNumber = Integer.parseInt(noPrefix);
+					if(txnNumber != this.transactionCounter) {
+						try {
+							Files.deleteIfExists(filesInTxnFolder[i].toPath());
+						} catch (IOException e1) {
+							System.out.println("WARN: Could not delete " + filesInTxnFolder[i].toPath());
+						}
+					}
+				}
+				if (fileName.startsWith(OLD_STATE_PREFIX)) {
+					try {
+						Files.deleteIfExists(filesInTxnFolder[i].toPath());
+					} catch (IOException e1) {
+						System.out.println("WARN: Could not delete " + filesInTxnFolder[i].toPath());
+					}
+				}
+			}
+		}
+		
 		this.activeTransactions.start();
 	}
 
@@ -44,8 +75,8 @@ public class TransactionManagerImpl implements TransactionManager {
 		//Find the most recent commit
 		for(int i = 0 ; i < filesInTxnFolder.length ; i++){
 			if(filesInTxnFolder[i].isFile()){
-				if(filesInTxnFolder[i].getName().startsWith("commitedTxn")){
-					String noPrefix = filesInTxnFolder[i].getName().substring("commitedTxn".length());
+				if(filesInTxnFolder[i].getName().startsWith(COMMITED_STATE_PREFIX)){
+					String noPrefix = filesInTxnFolder[i].getName().substring(COMMITED_STATE_PREFIX.length());
 					int txnNumber = Integer.parseInt(noPrefix);
 					if( largestTxn < txnNumber){
 						largestTxn = txnNumber;
@@ -59,7 +90,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	@Override
 	public synchronized int startTransaction() {
 		transactionCounter++;
-		String fileName = "oldState_txn" + transactionCounter;
+		String fileName = OLD_STATE_PREFIX + transactionCounter;
 		rm.writeDataToFile(fileName, transactionLocation);
 		activeTransactions.add(transactionCounter);
 		return transactionCounter;
@@ -70,7 +101,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		if (activeTransactions.contains(id)) {
 			activeTransactions.signalTransaction(id);
 		} else {
-			String fileName = "oldState_txn" + id;
+			String fileName = OLD_STATE_PREFIX + id;
 			rm.writeDataToFile(fileName, transactionLocation);
 			activeTransactions.add(id);
 		}
@@ -81,19 +112,30 @@ public class TransactionManagerImpl implements TransactionManager {
 	public synchronized boolean commitTransaction(int transactionID) throws AbortedTransactionException, TransactionNotActiveException{
 		activeTransactions.signalTransaction(transactionID);
 		//write new commit
-		if(!rm.writeDataToFile("commitedTxn"+transactionID, transactionLocation)){
+		if(!rm.writeDataToFile(COMMITED_STATE_PREFIX + transactionID, transactionLocation)){
 			abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		};
-		//Delete old committed transaction
-		Path p = Paths.get(transactionLocation, "commitedTxn"+(transactionID - 1));
-		try {
-			Files.deleteIfExists(p);
-		} catch (IOException e1) {
-			e1.printStackTrace();
+		
+		//Delete old committed transactions
+		File txnFolder = Paths.get(this.transactionLocation).toFile();
+		File[] filesInTxnFolder =  txnFolder.listFiles();
+		for(int i = 0 ; i < filesInTxnFolder.length ; i++){
+			if(filesInTxnFolder[i].isFile() && filesInTxnFolder[i].getName().startsWith(COMMITED_STATE_PREFIX)) {
+				String noPrefix = filesInTxnFolder[i].getName().substring(COMMITED_STATE_PREFIX.length());
+				int txnNumber = Integer.parseInt(noPrefix);
+				if(txnNumber < transactionID) {
+					try {
+						Files.deleteIfExists(filesInTxnFolder[i].toPath());
+					} catch (IOException e1) {
+						System.out.println("WARN: Could not delete " + filesInTxnFolder[i].toPath());
+					}
+				}
+			}
 		}
+
 		//Delete old state
-		p = Paths.get(transactionLocation, "oldState_txn"+transactionID);
+		Path p = Paths.get(transactionLocation, OLD_STATE_PREFIX + transactionID);
 		try {
 			Files.delete(p);
 		} catch (IOException e) {
@@ -109,11 +151,12 @@ public class TransactionManagerImpl implements TransactionManager {
 		activeTransactions.signalTransaction(transactionID);
 		int mostRecentCommit = getMostRecentCommitNumber();
 		if(transactionID > mostRecentCommit){
-			rm.readOldStateFromFile("oldState_txn"+transactionID, transactionLocation);
+			rm.readOldStateFromFile(OLD_STATE_PREFIX + transactionID, transactionLocation);
 		}else{
-			rm.readOldStateFromFile("commitedTxn", transactionLocation);
+			// TODO: confirm with Grady
+			rm.readOldStateFromFile(COMMITED_STATE_PREFIX + mostRecentCommit, transactionLocation);
 		}
-		Path p = Paths.get(transactionLocation, "oldState_txn"+transactionID);
+		Path p = Paths.get(transactionLocation, OLD_STATE_PREFIX + transactionID);
 		//Remove Old State
 		try {
 			Files.delete(p);
