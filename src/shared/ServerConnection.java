@@ -15,7 +15,7 @@ public class ServerConnection {
 		this.port = port;
 	}
 	
-	public ResponseDescriptor sendRequest(RequestDescriptor request) throws Exception {
+	public synchronized ResponseDescriptor sendRequest(RequestDescriptor request) throws Exception {
 		Socket connectionSocket = new Socket(hostname, port);
 		ObjectOutputStream streamOut = new ObjectOutputStream(connectionSocket.getOutputStream());
 		ObjectInputStream streamIn = new ObjectInputStream(connectionSocket.getInputStream());

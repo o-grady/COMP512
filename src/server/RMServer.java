@@ -21,7 +21,7 @@ public class RMServer {
     		serverID = Integer.parseInt(args[0]);
         	port = Integer.parseInt(args[1]);
     	}
-        if (args.length == 1) {
+    	else if (args.length == 1) {
     		serverID = Integer.parseInt(args[0]);
         	System.out.println("Enter port to listen on");
     		port = Integer.parseInt(scanner.nextLine());

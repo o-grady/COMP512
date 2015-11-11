@@ -3,12 +3,32 @@ package testclient;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import shared.RequestDescriptor;
 import shared.RequestType;
 import shared.ResponseDescriptor;
 import shared.ServerConnection;
 
-public class TestClient {
+public class PerformanceTestClient {
+	private static final int round = 53;
+	private static final int iterations = 60;
+	
+	static class ClientThread extends Thread{
+		PerformanceTestClient t;
+		int threadNumber;
+		int delay;
+		public ClientThread(PerformanceTestClient t, int threadNumber, int delay){
+			super();
+			this.t = t;
+			this.threadNumber = threadNumber;
+			this.delay = delay;
+		}
+		public void run(){
+			float ave = t.averageTxnTime(false, iterations, delay);
+			System.out.println("Thread " + threadNumber + " average," + ave);
+		}
+	}
+	
 	public static void main(String args[]){
 		ServerConnection middlewareConnection;
 		if(args.length != 2){
@@ -18,15 +38,15 @@ public class TestClient {
 		}
 		try {
 			middlewareConnection = new ServerConnection(args[0], Integer.parseInt(args[1]));
-			int customerNumber = 1;
-			int flightNumber = 1;
-			String carLocation = "a";
-			String roomLocation = "b";
-			
+			int customerNumber = round;
+			int flightNumber = round;
+			String carLocation = Integer.toString(round);
+			String roomLocation = Integer.toString(round);
+			/*
 			newCustomerID(middlewareConnection, customerNumber);
 			//Single Client Single RM
-			TestClient t = new TestClient(middlewareConnection, customerNumber, flightNumber, carLocation, roomLocation);
-			float singleAve = t.averageTxnTime(true, 50, 500);
+			PerformanceTestClient t = new PerformanceTestClient(middlewareConnection, customerNumber, flightNumber, carLocation, roomLocation);
+			float singleAve = t.averageTxnTime(true, iterations, 0);
 			System.out.println("Single Client Single RM Average Txn Time = " + singleAve);
 			
 			//Change numbers to avoid deadlocks
@@ -37,31 +57,35 @@ public class TestClient {
 			
 			newCustomerID(middlewareConnection, customerNumber);
 			//Single Client MultiRM
-			t = new TestClient(middlewareConnection, customerNumber, flightNumber, carLocation, roomLocation);
-			float multiAve = t.averageTxnTime(false, 50, 500);
-			System.out.println("Single Client Multi RM Average Txn Time = " + multiAve);
+			t = new PerformanceTestClient(middlewareConnection, customerNumber, flightNumber, carLocation, roomLocation);
+			float multiAve = t.averageTxnTime(false, iterations, 0);
+			System.out.println("Multi Client Multi RM Average Txn Time = " + multiAve);*/
 			System.out.println("Starting multiClient test");
+			
 			//MultiClient MultiRM
 			int numberClients = 10;
-			TestClient[] clientArray = new TestClient[numberClients];
+			PerformanceTestClient[] clientArray = new PerformanceTestClient[numberClients];
 			for(int i = 0 ; i < numberClients ; i++){
 				//Change numbers to avoid deadlocks
 				customerNumber++;
 				flightNumber++;
-				carLocation += "a";
-				roomLocation += "a";
 				
 				newCustomerID(middlewareConnection, customerNumber);
-				clientArray[i] = new TestClient(middlewareConnection, customerNumber, flightNumber, carLocation, roomLocation);
+				clientArray[i] = new PerformanceTestClient(middlewareConnection, customerNumber, flightNumber, carLocation+Integer.toString(i), roomLocation+Integer.toString(i));
 			}
 			for(int i = 0 ; i < numberClients ; i++){
-				(new ClientThread(clientArray[i], i)).start();
+				(new ClientThread(clientArray[i], i, numberClients * round)).start();
+				Thread.sleep(round);
 			}
+			System.in.read();
 			
 		} catch (NumberFormatException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
@@ -71,7 +95,7 @@ public class TestClient {
 	int flightNumber;
 	String carLocation;
 	String roomLocation;
-	public TestClient(ServerConnection mw, int customerNumber, int flightNumber, String carLocation, String roomLocation ){
+	public PerformanceTestClient(ServerConnection mw, int customerNumber, int flightNumber, String carLocation, String roomLocation ){
 		this.middlewareConnection = mw;
 		this.customerID = customerNumber;
 		this.flightNumber = flightNumber;
@@ -80,7 +104,6 @@ public class TestClient {
 	}
 	public float averageTxnTime(boolean isSingleRM, int iterations, int delayMillis ){
 		try {
-			newCustomerID(middlewareConnection, customerID);
 			List<Long> transactionTimes = new ArrayList<Long>();
 			int transactionsDone = 0;
 			while(transactionsDone < iterations){		
@@ -96,7 +119,8 @@ public class TestClient {
 				
 				transactionsDone++;
 				//System.out.println("Transaction " + transactionsDone + " completed");
-				Thread.sleep(delayMillis);
+				if (delayMillis - timeElapsed > 0) 
+					Thread.sleep(delayMillis - timeElapsed);
 			}
 			long totalTime = 0;
 			for( long l : transactionTimes){
@@ -150,11 +174,6 @@ public class TestClient {
 			req.flightNumber = flightNumber;
 			mw.sendRequest(req);
 
-			req = new RequestDescriptor(RequestType.QUERYFLIGHTPRICE);
-			req.transactionID = transactionID;
-			req.flightNumber = flightNumber;
-			mw.sendRequest(req);
-
 			req = new RequestDescriptor(RequestType.RESERVEFLIGHT);
 			req.transactionID = transactionID;
 			req.flightNumber = flightNumber;
@@ -186,18 +205,13 @@ public class TestClient {
 			req.location = carLocation;
 			req.numCars = 5;
 			req.price = 5;
+			mw.sendRequest(req);
 			
 			req = new RequestDescriptor(RequestType.NEWROOM);
 			req.transactionID = transactionID;
 			req.location = roomLocation;
 			req.numRooms = 5;
 			req.price = 5;
-			mw.sendRequest(req);
-			
-			req = new RequestDescriptor(RequestType.RESERVECAR);
-			req.transactionID = transactionID;
-			req.location = carLocation;
-			req.customerNumber = customerNumber;
 			mw.sendRequest(req);
 
 			req = new RequestDescriptor(RequestType.COMMIT);
@@ -206,18 +220,5 @@ public class TestClient {
 		}catch (Exception e){
 			e.printStackTrace();
 		}
-	}
-}
-class ClientThread extends Thread{
-	TestClient t;
-	int threadNumber;
-	public ClientThread(TestClient t, int threadNumber){
-		super();
-		this.t = t;
-		this.threadNumber = threadNumber;
-	}
-	public void run(){
-		float ave = t.averageTxnTime(false, 50, 500);
-		System.out.println("Thread " + threadNumber + " average = " + ave);
 	}
 }
