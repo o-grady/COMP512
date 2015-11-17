@@ -9,6 +9,7 @@ public class ServerConnection {
 	
 	private String hostname;
 	private int port;
+	private Object socketCreationLock = new Object();
 	
 	public ServerConnection(String hostname, int port) throws IOException {
 		this.hostname = hostname;
@@ -16,8 +17,10 @@ public class ServerConnection {
 	}
 	
 	public ResponseDescriptor sendRequest(RequestDescriptor request) throws Exception {
-		//TODO: Find what to synchonize (not the whole method)
-		Socket connectionSocket = new Socket(hostname, port);
+		Socket connectionSocket = null;
+		synchronized ( socketCreationLock ){
+			connectionSocket = new Socket(hostname, port);
+		}
 		ObjectOutputStream streamOut = new ObjectOutputStream(connectionSocket.getOutputStream());
 		ObjectInputStream streamIn = new ObjectInputStream(connectionSocket.getInputStream());
 		

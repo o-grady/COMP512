@@ -10,7 +10,7 @@ import shared.ResponseDescriptor;
 import shared.ServerConnection;
 
 public class PerformanceTestClient {
-	private static final int round = 53;
+	private static final int round = 0;
 	private static final int iterations = 60;
 	
 	static class ClientThread extends Thread{
