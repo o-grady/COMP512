@@ -15,7 +15,8 @@ public class ServerConnection {
 		this.port = port;
 	}
 	
-	public synchronized ResponseDescriptor sendRequest(RequestDescriptor request) throws Exception {
+	public ResponseDescriptor sendRequest(RequestDescriptor request) throws Exception {
+		//TODO: Find what to synchonize (not the whole method)
 		Socket connectionSocket = new Socket(hostname, port);
 		ObjectOutputStream streamOut = new ObjectOutputStream(connectionSocket.getOutputStream());
 		ObjectInputStream streamIn = new ObjectInputStream(connectionSocket.getInputStream());
