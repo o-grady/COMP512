@@ -80,6 +80,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            activeTxns.add(intResponse);
 	            break;
 		    case COMMIT:
+		    	//TODO: This needs to implement 2PC instead of 1 phase like this
 	            System.out.println("COMMIT received");
 	            boolResponse = tm.commitTransaction(transactionID);
 	            

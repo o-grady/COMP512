@@ -27,5 +27,6 @@ public enum RequestType {
     SHUTDOWN,
  // internal signals, do not expose to client
     ENLIST,
-    ABORTALL
+    ABORTALL,
+    PREPARE
 }

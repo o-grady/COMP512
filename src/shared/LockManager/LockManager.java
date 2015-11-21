@@ -184,6 +184,18 @@ public class LockManager
 
         return true;
     }
+    public boolean isTransactionWaiting(int xid){
+    	XObj xobj = new XObj(xid);
+    	synchronized(LockManager.waitTable){
+    		Vector waiting = LockManager.waitTable.elementsOfSameTxnID(xobj);
+    		//If transaction is waiting on any data items, return true
+    		if( waiting.size() > 0){
+    			return false;
+    		}else{
+    			return true;
+    		}
+    	}
+    }
 
     
     // returns true if the lock request on dataObj conflicts with already existing locks. If the lock request is a

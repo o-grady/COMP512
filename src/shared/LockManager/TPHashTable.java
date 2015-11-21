@@ -66,6 +66,29 @@ public class TPHashTable
         }
         return elemVect;
     }
+    public synchronized Vector elementsOfSameTxnID(XObj xobj) {
+        if (xobj == null) return (new Vector());
+        
+        Vector vectSlot;    // hash slot
+        Vector elemVect = new Vector(24); // return object
+        
+        int hashSlot = (xobj.hashCode() % this.iSize);
+        if ( hashSlot < 0 ) {
+            hashSlot = -hashSlot;
+        }
+        
+        vectSlot = (Vector) vect.elementAt( hashSlot );
+        
+        XObj xobj2;
+        int size = vectSlot.size();
+        for ( int i = 0; i < size; i++ ) {
+            xobj2 = (XObj) vectSlot.elementAt(i);
+            if ( xobj.xid == xobj2.xid ) {
+                elemVect.addElement(xobj2);
+            }
+        }
+        return elemVect;
+    }
     
     public synchronized boolean contains(XObj xobj)
     {

@@ -109,6 +109,24 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 
 	@Override
+	public boolean prepare(int transactionID){
+		//Not sure that these exceptions should be thrown, because TMRequestHandler will catch and send String resp, want
+		//to send a boolean even if transaction is dead.
+		if(!activeTransactions.contains(transactionID)){
+			return false; 
+		}
+		activeTransactions.signalTransaction(transactionID);
+		if (lm.isTransactionWaiting(transactionID)){
+			try {
+				this.abortTransaction(transactionID);
+			} catch (TransactionNotActiveException e) {
+				//TODO: don't think anything needs to be done here
+			}
+			return false;
+		}
+		return true; 
+	}
+	@Override
 	public synchronized boolean commitTransaction(int transactionID) throws AbortedTransactionException, TransactionNotActiveException{
 		activeTransactions.signalTransaction(transactionID);
 		//write new commit

@@ -150,6 +150,10 @@ public class TMRequestHandler implements IRequestHandler {
 				System.out.println("ABORTALL received");
 		    	boolResponse = tm.abortAllActiveTransactions();		    	
 				break;
+			case PREPARE:
+				System.out.println("PREPARE received");
+		    	boolResponse = tm.prepare(request.transactionID);		    	
+				break;
 			default:
 				break;
 			}

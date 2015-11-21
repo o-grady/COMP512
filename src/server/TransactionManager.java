@@ -87,6 +87,9 @@ public interface TransactionManager {
 
     /* Reserve a room at this location. */    
     public boolean reserveRoom(int transactionID, int customerNumber, String location) throws AbortedTransactionException, TransactionNotActiveException;
+    
+    /* Returns true if transaction can be committed */
+	boolean prepare(int transactionID) throws AbortedTransactionException, TransactionNotActiveException;
 
 
 
