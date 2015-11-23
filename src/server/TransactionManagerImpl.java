@@ -112,13 +112,17 @@ public class TransactionManagerImpl implements TransactionManager {
 	public boolean prepare(int transactionID){
 		//Not sure that these exceptions should be thrown, because TMRequestHandler will catch and send String resp, want
 		//to send a boolean even if transaction is dead.
+		System.out.println("Starting prepare");
 		if(!activeTransactions.contains(transactionID)){
+			System.out.println("Transaction not active");
 			return false; 
 		}
 		activeTransactions.signalTransaction(transactionID);
 		if (lm.isTransactionWaiting(transactionID)){
+			System.out.println("Transaction waiting");
 			try {
 				this.abortTransaction(transactionID);
+				System.out.println("Aborted Transaction");
 			} catch (TransactionNotActiveException e) {
 				//TODO: don't think anything needs to be done here
 			}
@@ -159,6 +163,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println("Calling UnlockAll on " + transactionID);
 		lm.UnlockAll(transactionID);
 		activeTransactions.remove(transactionID);
 		return true;
@@ -166,6 +171,10 @@ public class TransactionManagerImpl implements TransactionManager {
 	
 	@Override
 	public synchronized boolean abortTransaction(int transactionID) throws TransactionNotActiveException {
+		if(!activeTransactions.contains(transactionID)){
+			System.out.println("abortTransaction: transaction not active, throwing exception");
+			throw new TransactionNotActiveException();
+		}
 		activeTransactions.signalTransaction(transactionID);
 		int mostRecentCommit = getMostRecentCommitNumber();
 		if(transactionID > mostRecentCommit){
@@ -181,6 +190,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println("Calling UnlockAll on " + transactionID);
 		lm.UnlockAll(transactionID);
 		activeTransactions.remove(transactionID);
 		return true;

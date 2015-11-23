@@ -3,7 +3,7 @@ package shared.LockManager;
 public class WaitObj extends DataObj
 {
     protected Thread thread = null;
-    
+    private boolean stopped = false;
     // The data members inherited are 
     // XObj:: protected int xid;
     // TrxnObj:: protected String strData;
@@ -26,5 +26,11 @@ public class WaitObj extends DataObj
     
     public Thread getThread() {
         return this.thread;
+    }
+    public boolean isStopped(){
+    	return this.stopped;
+    }
+    public void setStopped(boolean stop){
+    	this.stopped = stop;
     }
 }

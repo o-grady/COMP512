@@ -71,21 +71,16 @@ public class TPHashTable
         
         Vector vectSlot;    // hash slot
         Vector elemVect = new Vector(24); // return object
-        
-        int hashSlot = (xobj.hashCode() % this.iSize);
-        if ( hashSlot < 0 ) {
-            hashSlot = -hashSlot;
-        }
-        
-        vectSlot = (Vector) vect.elementAt( hashSlot );
-        
-        XObj xobj2;
-        int size = vectSlot.size();
-        for ( int i = 0; i < size; i++ ) {
-            xobj2 = (XObj) vectSlot.elementAt(i);
-            if ( xobj.xid == xobj2.xid ) {
-                elemVect.addElement(xobj2);
-            }
+       	XObj xobj2;
+        for(int i = 0 ; i < this.iSize ; i++){
+        	vectSlot = (Vector) vect.elementAt(i);
+        	int size = vectSlot.size();
+        	for ( int j = 0; j < size; j++ ) {
+        		xobj2 = (XObj) vectSlot.elementAt(j);
+        		if ( xobj.xid == xobj2.xid ) {
+        			elemVect.addElement(xobj2);
+        		}
+        	}
         }
         return elemVect;
     }

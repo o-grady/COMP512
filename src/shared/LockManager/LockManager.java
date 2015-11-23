@@ -43,19 +43,19 @@ public class LockManager
             boolean bConflict = true;
             BitSet bConvert = new BitSet(1);
             while (bConflict) {
-                System.out.println("Entering synchronized block on (LockManager.lockTable), in method Lock");
+                //System.out.println("Entering synchronized block on (LockManager.lockTable), in method Lock");
                 synchronized (LockManager.lockTable) {
                     // check if this lock request conflicts with existing locks
                     bConflict = LockConflict(dataObj, bConvert);
                     if (!bConflict) {
                         // no lock conflict
-                        System.out.println("Entering synchronized block on (LockManager.stampTable), in method Lock");
+                        //System.out.println("Entering synchronized block on (LockManager.stampTable), in method Lock");
                         synchronized (LockManager.stampTable) {
                             // remove the timestamp (if any) for this lock request
                             TimeObj timeObj = new TimeObj(xid);
                             LockManager.stampTable.remove(timeObj);
                         }
-                        System.out.println("Entering synchronized block on (LockManager.waitTable), in method Lock");
+                        //System.out.println("Entering synchronized block on (LockManager.waitTable), in method Lock");
                         synchronized (LockManager.waitTable) {
                             // remove the entry for this transaction from waitTable (if it
                             // is there) as it has been granted its lock request
@@ -79,6 +79,7 @@ public class LockManager
                         }
                     }
                 }
+                System.out.println("Exiting synchronized block on (LockManager.lockTable), in method Lock");
                 if (bConflict) {
                     // lock conflict exists, wait
                     WaitLock(dataObj);
@@ -106,7 +107,7 @@ public class LockManager
         }
 
         TrxnObj trxnQueryObj = new TrxnObj(xid, "", -1);  // Only used in elements() call below.
-        System.out.println("Entering synchronized block on (LockManager.lockTable), in method UnlockAll");
+        //System.out.println("Entering synchronized block on (LockManager.lockTable), in method UnlockAll");
         synchronized (LockManager.lockTable) {
             Vector vect = LockManager.lockTable.elements(trxnQueryObj);
 
@@ -114,6 +115,7 @@ public class LockManager
             Vector waitVector;
             WaitObj waitObj;
             int size = vect.size();
+            System.out.println("UnlockAll: LockManager.lockTable.elements(trxnQueryObj).size() = " + size);
                                                 
             for (int i = (size - 1); i >= 0; i--) {
                 
@@ -124,7 +126,7 @@ public class LockManager
                 LockManager.lockTable.remove(dataObj);
                                         
                 // check if there are any waiting transactions. 
-                System.out.println("Entering synchronized block on (LockManager.waitTable), in method UnlockAll");
+                //System.out.println("Entering synchronized block on (LockManager.waitTable), in method UnlockAll");
                 synchronized (LockManager.waitTable) {
                     // get all the transactions waiting on this dataObj
                     waitVector = LockManager.waitTable.elements(dataObj);
@@ -143,7 +145,7 @@ public class LockManager
                                     LockManager.waitTable.remove(waitObj);     
                                     
                                     try {
-                                        System.out.println("Entering synchronized block on (waitObj.getThread()), in method UnlockAll");
+                                        //System.out.println("Entering synchronized block on (waitObj.getThread()), in method UnlockAll");
                                         synchronized (waitObj.getThread())    {
                                             waitObj.getThread().notify();
                                         }    
@@ -168,7 +170,7 @@ public class LockManager
                             LockManager.waitTable.remove(waitObj);    
                             
                             try {
-                                System.out.println("Entering synchronized block on (waitObj.getThread()), in method UnlockAll");
+                                //System.out.println("Entering synchronized block on (waitObj.getThread()), in method UnlockAll");
                                 synchronized (waitObj.getThread()) {
                                     waitObj.getThread().notify();
                                 }    
@@ -181,18 +183,53 @@ public class LockManager
                 } 
             }
         } 
-
+        //remove all 
+        //System.out.println("Entering synchronized block on (LockManager.stampTable), in method Lock");
+        synchronized (LockManager.stampTable) {
+        	System.out.println("UnlockAll, clearing stampTable");
+            // remove the timestamp (if any) for this lock request
+            TimeObj timeObj = new TimeObj(xid);
+            LockManager.stampTable.remove(timeObj);
+        }
+        //System.out.println("Entering synchronized block on (LockManager.waitTable), in method Lock");
+        synchronized (LockManager.waitTable) {
+            // remove the entry for this transaction from waitTable (if it
+            // is there) as it has been granted its lock request
+        	System.out.println("UnlockAll, clearing waitTable");
+            Vector waitVect = LockManager.waitTable.elementsOfSameTxnID(new XObj(xid));
+            int size = waitVect.size();
+            for(int i = 0 ; i < size ; i++){
+            	WaitObj waitObj = (WaitObj) waitVect.elementAt(i);
+            	LockManager.waitTable.remove(waitObj);
+                try {
+                    //System.out.println("Entering synchronized block on (waitObj.getThread()), in method UnlockAll");
+                    synchronized (waitObj.getThread()){
+                    	waitObj.setStopped(true);
+                    	System.out.println("Calling notify");
+                        waitObj.getThread().notify();
+                    }    
+                }
+                catch (Exception e)    {
+                    System.out.println("Exception on unlock\n" + e.getMessage());
+                }        
+            }
+        }
         return true;
     }
     public boolean isTransactionWaiting(int xid){
+    	System.out.println("LockManager isTransactionWaiting: xid = " + xid);
     	XObj xobj = new XObj(xid);
     	synchronized(LockManager.waitTable){
     		Vector waiting = LockManager.waitTable.elementsOfSameTxnID(xobj);
     		//If transaction is waiting on any data items, return true
+    		System.out.println("All elements of wait table: = " + LockManager.waitTable.allElements().toString());
+    		
     		if( waiting.size() > 0){
-    			return false;
-    		}else{
+    			System.out.println("LockManager isTransactionWaiting: transaction is waiting, waiting.size() = " + waiting.size());
     			return true;
+    		}else{
+    			System.out.println("LockManager isTransactionWaiting: transaction is waiting, waiting.size() = " + waiting.size());
+    			return false;
     		}
     	}
     }
@@ -271,14 +308,14 @@ public class LockManager
         // Will always add new timestamp for each new lock request since
         // the timeObj is deleted each time the transaction succeeds in
         // getting a lock (see Lock() )
-        
+    	System.out.println("Entering waitLock");
         TimeObj timeObj = new TimeObj(dataObj.getXId());
         TimeObj timestamp = null;
         long timeBlocked = 0;
         Thread thisThread = Thread.currentThread();
         WaitObj waitObj = new WaitObj(dataObj.getXId(), dataObj.getDataName(), dataObj.getLockType(), thisThread);
 
-        System.out.println("Entering synchronized block on (LockManager.stampTable), in method WaitLock");
+        //System.out.println("Entering synchronized block on (LockManager.stampTable), in method WaitLock");
         synchronized (LockManager.stampTable) {
             Vector vect = LockManager.stampTable.elements(timeObj);
             if (vect.size() == 0) {
@@ -290,7 +327,7 @@ public class LockManager
                 TimeObj prevStamp = (TimeObj)vect.firstElement();
                 timestamp = prevStamp;
                 timeBlocked = timeObj.getTime() - prevStamp.getTime();
-                if (timeBlocked >= LockManager.DEADLOCK_TIMEOUT) {
+                if (timeBlocked >= LockManager.DEADLOCK_TIMEOUT || waitObj.isStopped()) {
                     // the transaction has been waiting for a period greater than the timeout period
                     cleanupDeadlock(prevStamp, waitObj);
                 }
@@ -303,7 +340,7 @@ public class LockManager
         
         // suspend thread and wait until notified...
 
-        System.out.println("Entering synchronized block on (LockManager.waitTable), in method WaitLock");
+        //System.out.println("Entering synchronized block on (LockManager.waitTable), in method WaitLock");
         synchronized (LockManager.waitTable) {
             if (! LockManager.waitTable.contains(waitObj)) {
                 // register this transaction in the waitTable if it is not already there 
@@ -314,17 +351,18 @@ public class LockManager
             }
         }
         
-        System.out.println("Entering synchronized block on (thisThread), in method WaitLock");
+        //System.out.println("Entering synchronized block on (thisThread), in method WaitLock");
         synchronized (thisThread) {
             try {
                 thisThread.wait(LockManager.DEADLOCK_TIMEOUT - timeBlocked);
                 TimeObj currTime = new TimeObj(dataObj.getXId());
                 timeBlocked = currTime.getTime() - timestamp.getTime();
-                if (timeBlocked >= LockManager.DEADLOCK_TIMEOUT) {
+                if (timeBlocked >= LockManager.DEADLOCK_TIMEOUT || waitObj.isStopped()) {
                     // the transaction has been waiting for a period greater than the timeout period
                     cleanupDeadlock(timestamp, waitObj);
                 }
                 else {
+                	System.out.println("Leaving waitlock");
                     return;
                 }
             }
@@ -339,7 +377,7 @@ public class LockManager
     private void cleanupDeadlock(TimeObj tmObj, WaitObj waitObj)
         throws DeadlockException
     {
-        System.out.println("Entering synchronized block on (LockManager.stampTable), in method cleanupDeadlock");
+        //System.out.println("Entering synchronized block on (LockManager.stampTable), in method cleanupDeadlock");
         synchronized (LockManager.stampTable) {
             synchronized (LockManager.waitTable) {
                 LockManager.stampTable.remove(tmObj);

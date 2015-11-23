@@ -1,5 +1,7 @@
 package middleware;
 
+import java.util.Map;
+
 import server.AbortedTransactionException;
 import server.TMRequestHandler;
 import server.TransactionManager;
@@ -82,9 +84,25 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		    case COMMIT:
 		    	//TODO: This needs to implement 2PC instead of 1 phase like this
 	            System.out.println("COMMIT received");
-	            boolResponse = tm.commitTransaction(transactionID);
-	            
-	            boolResponse = boolResponse && this.sendRequestToStarted(request);
+	            boolean voteResult = twoPhaseCommitVoteRequest(transactionID);
+	            System.out.println("Vote result = " + voteResult);
+	            if(voteResult == true){
+	            	boolResponse = tm.commitTransaction(transactionID);
+	            	System.out.println("committed on middleware");
+	            	boolResponse = boolResponse && this.sendRequestToStarted(request);
+	            	System.out.println("committed on RMs");
+	            }else{
+	            	//abort all
+		            tm.abortTransaction(transactionID);
+	            	System.out.println("aborted on middleware");
+	            	RequestDescriptor abortRequest = new RequestDescriptor(RequestType.ABORT);
+	            	abortRequest.transactionID = request.transactionID;
+		            this.sendRequestToStarted(abortRequest);
+	            	System.out.println("aborted on RMs");
+		            //Return false on abort?
+		            boolResponse = false;
+		            activeTxns.remove(transactionID);
+	            }
 
 	            activeTxns.remove(transactionID);
 	            break;
@@ -367,5 +385,33 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		res.data = true;
 		res.additionalMessage = "Success!";
 		return res;
+	}
+	private boolean twoPhaseCommitVoteRequest(int transactionID){
+		System.out.println("Starting 2PC voting");
+		Map<ServerMode, Boolean> serversUsed = this.activeTxns.get(transactionID).hasStarted;
+		RequestDescriptor request = null;
+		for( ServerMode mode : ServerMode.values() ){
+			if(serversUsed.get(mode)){
+				request = new RequestDescriptor(RequestType.PREPARE);
+				request.transactionID = transactionID;
+				try {
+					System.out.println("Sending vote request to " + mode.toString());
+					ResponseDescriptor rd = cm.getConnection(mode).sendRequest(request);
+					System.out.println("Data Recieved: " + rd.data.toString());
+					boolean vote = (boolean) rd.data;
+
+					if(vote == false){
+						return false;
+					}
+				} catch (Exception e) {
+					System.out.println("Error in twoPhaseCommitVoteRequest");
+					e.printStackTrace();
+					//dont think this should happen, abort just in case?
+					return false;
+				} 
+			}
+		}
+		//No one voted no, so return true
+		return true;
 	}
 }
