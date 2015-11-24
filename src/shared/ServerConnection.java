@@ -35,6 +35,26 @@ public class ServerConnection {
 			throw new Exception("Incorrect class");
 		}
 	}
+	public ResponseDescriptor sendRequestWithTimeOut(RequestDescriptor request, int timeOut) throws java.net.SocketException, Exception {
+		Socket connectionSocket = null;
+		synchronized ( socketCreationLock ){
+			connectionSocket = new Socket(hostname, port);
+			connectionSocket.setSoTimeout(timeOut);
+		}
+		ObjectOutputStream streamOut = new ObjectOutputStream(connectionSocket.getOutputStream());
+		ObjectInputStream streamIn = new ObjectInputStream(connectionSocket.getInputStream());
+		
+		streamOut.writeObject(request);
+		Object read = streamIn.readObject();
+		
+		connectionSocket.close();
+		
+		if (read.getClass() == ResponseDescriptor.class) {
+			return (ResponseDescriptor) read;
+		} else {
+			throw new Exception("Incorrect class");
+		}
+	}
 	
 	public String getHostname() {
 		return this.hostname; //connectionSocket.getInetAddress().getHostName();

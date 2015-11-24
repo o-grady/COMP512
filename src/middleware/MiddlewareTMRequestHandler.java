@@ -14,10 +14,12 @@ import shared.ResponseType;
 import shared.ServerConnection;
 
 public class MiddlewareTMRequestHandler implements IRequestHandler {
+	private static final int TWO_PHASE_COMMIT_TIMEOUT = 10000;
 	private ConnectionManager cm;
 	private TransactionManager tm;
 	private TMRequestHandler rh;
 	private MiddlewareActiveTransactionThread activeTxns; 
+
 	
 	public MiddlewareTMRequestHandler(ConnectionManager cm, TransactionManager tm, TMRequestHandler rh) {
 		this.cm = cm;
@@ -98,7 +100,6 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            activeTxns.add(intResponse);
 	            break;
 		    case COMMIT:
-		    	//TODO: This needs to implement 2PC instead of 1 phase like this
 	            System.out.println("COMMIT received");
 	            boolean voteResult = twoPhaseCommitVoteRequest(transactionID);
 	            System.out.println("Vote result = " + voteResult);
@@ -415,10 +416,19 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				request.transactionID = transactionID;
 				try {
 					System.out.println("Sending vote request to " + mode.toString());
-					ResponseDescriptor rd = cm.getConnection(mode).sendRequest(request);
-					System.out.println("Data Recieved: " + rd.data.toString());
-					boolean vote = (boolean) rd.data;
-
+					boolean dataReceived = false;
+					boolean vote = false;
+					try{
+						ResponseDescriptor rd = cm.getConnection(mode).sendRequestWithTimeOut(request, TWO_PHASE_COMMIT_TIMEOUT);
+						System.out.println("Data Recieved: " + rd.data.toString());
+						vote = (boolean) rd.data; 
+						dataReceived = true;
+					}catch(java.net.SocketException e){}
+					
+					//if it times out / dies and hasn't received a vote 
+					if(!dataReceived){
+						return false;
+					}
 					if(vote == false){
 						return false;
 					}

@@ -1,6 +1,9 @@
 package shared;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -11,9 +14,11 @@ public abstract class AbstractTTLThread<T> extends Thread {
 
 	public AbstractTTLThread() {
 		this.activeTransactions = new ConcurrentHashMap<Integer, T>();
+		this.hangingTransactions = new ArrayList<Integer>();
 	}
 
 	protected Map<Integer, T> activeTransactions;
+	private List<Integer> hangingTransactions;
 	private static final long TTL_INTERVAL = 60 * 1000;
 
 	public void run() {
@@ -36,7 +41,17 @@ public abstract class AbstractTTLThread<T> extends Thread {
 			}
 		}
 	}
-
+	//used for 2PC, client can't timeout when waiting for vote result
+	public void hangTransaction(int transactionID){
+		synchronized(hangingTransactions){
+			hangingTransactions.add(transactionID);
+		}
+	}
+	public void unhangTransaction(int transactionID){
+		synchronized(hangingTransactions){
+			hangingTransactions.remove(transactionID);
+		}
+	}
 	public Set<Integer> getAllActiveTransactions() {
 		return new HashSet<Integer>(activeTransactions.keySet());
 	}
@@ -78,6 +93,12 @@ public abstract class AbstractTTLThread<T> extends Thread {
 
 	public long transactionLastActive(int transactionID)
 			throws TransactionNotActiveException {
+		//if transaction is hanging, return current time so transaction is always active.
+		synchronized (hangingTransactions) {
+			if (hangingTransactions.contains(transactionID)) {
+				return System.currentTimeMillis(); 
+			}
+		}
 		synchronized (activeTransactions) {
 			if (activeTransactions.containsKey(transactionID)) {
 				return this.getLastActive(transactionID);

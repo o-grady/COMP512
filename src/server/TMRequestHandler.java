@@ -7,7 +7,6 @@ import shared.ResponseType;
 
 public class TMRequestHandler implements IRequestHandler {
 	private TransactionManager tm;
-
 	public TMRequestHandler(TransactionManager tm) {
 		this.tm = tm;
 	}
@@ -166,6 +165,9 @@ public class TMRequestHandler implements IRequestHandler {
 		} catch (AbortedTransactionException e) {
 			responseType = ResponseType.ABORT;
 			stringResponse = "AbortedTransaction";
+		} catch (TransactionBlockingException e) {
+			responseType = ResponseType.BLOCKING;
+			stringResponse = "Transaction is blocking in commit phase";
 		}
 		if (responseType != null) {
 			return new ResponseDescriptor(responseType, stringResponse);

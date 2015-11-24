@@ -5,5 +5,6 @@ public enum ResponseType {
 	BOOLEAN,
 	STRING,
 	ERROR,
-	ABORT
+	ABORT,
+	BLOCKING
 }
