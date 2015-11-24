@@ -25,8 +25,10 @@ public enum RequestType {
     COMMIT,
     ABORT,
     SHUTDOWN,
+    CRASH,
  // internal signals, do not expose to client
     ENLIST,
     ABORTALL,
-    PREPARE
+    PREPARE,
+    SELFDESTRUCT
 }

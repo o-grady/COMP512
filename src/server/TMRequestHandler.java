@@ -6,7 +6,6 @@ import shared.ResponseDescriptor;
 import shared.ResponseType;
 
 public class TMRequestHandler implements IRequestHandler {
-
 	private TransactionManager tm;
 
 	public TMRequestHandler(TransactionManager tm) {
@@ -153,6 +152,9 @@ public class TMRequestHandler implements IRequestHandler {
 			case PREPARE:
 				System.out.println("PREPARE received, transactionID = " + request.transactionID);
 		    	boolResponse = tm.prepare(request.transactionID);		    	
+				break;
+			case SELFDESTRUCT: 
+				System.exit(1);
 				break;
 			default:
 				break;

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Vector;
 
+import middleware.ServerMode;
 import shared.RequestDescriptor;
 import shared.RequestType;
 import shared.ResponseDescriptor;
@@ -296,6 +297,11 @@ public class CommandLineTestClient {
             System.out.println("Shutting down");
             
 			break;
+		case CRASH:
+            System.out.println("Crashing server " + getServerModeFromString(arguments[1]));
+
+            rd.serverToCrash = getServerModeFromString(arguments[1]);
+			break;
 		default:
 			break;
     	}
@@ -378,6 +384,8 @@ public class CommandLineTestClient {
             return 25;
         else if (argument.compareToIgnoreCase("shutdown") == 0)
             return 26;
+        else if (argument.compareToIgnoreCase("crash") == 0)
+            return 27;
         else
             return 666;
     }
@@ -609,13 +617,37 @@ public class CommandLineTestClient {
             System.out.println("\tshutdown");
             break;
 
+            case 27:  //crash
+            System.out.println("Crash");
+            System.out.println("Purpose: ");
+            System.out.println("\tCrash server a specific server, not a graceful shutdown");
+            System.out.println("\nUsage: ");
+            System.out.println("\tcrash,ServerMode");
+            break;
+
+
             default:
             System.out.println(command);
             System.out.println("The interface does not support this command.");
             break;
         }
     }
+    public ServerMode getServerModeFromString(String serverMode){
+    	ServerMode mode = null;
+    	String enumName;
+    	if(serverMode.toUpperCase().equals("MIDDLEWARE")){
+    		enumName = "CUSTOMER";
+    	}else{
+    		enumName = serverMode.toUpperCase();
+    	}
+    	try{
+    		mode = Enum.valueOf(ServerMode.class, enumName);
+    	}catch(IllegalArgumentException | NullPointerException e){
+    		System.out.println("Couldn't parse ServerMode");
+    	}
+    	return mode;
 
+    }
     public int getInt(Object temp) throws Exception {
         try {
             return (new Integer((String)temp)).intValue();

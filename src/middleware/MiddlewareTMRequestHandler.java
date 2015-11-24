@@ -35,7 +35,23 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		ServerMode mode = null;
 		ResponseType responseType = null;
 		int transactionID = request.transactionID;
-		try{
+		try{	
+			//crash doesn't need a valid transactionID
+			if(request.requestType == RequestType.CRASH){
+				if(request.serverToCrash == null){
+					throw new Exception();
+				}
+				System.out.println("CRASH received");
+		    	ServerMode toCrash = request.serverToCrash;
+		    	RequestDescriptor selfDestructMessage = new RequestDescriptor(RequestType.SELFDESTRUCT);
+		    	if(toCrash == ServerMode.CUSTOMER){
+		    		rh.handleRequest(selfDestructMessage);
+		    	}else{
+		    		if(cm.modeIsConnected(toCrash)){
+		    			cm.getConnection(toCrash).sendRequest(selfDestructMessage);
+		    		}
+		    	}
+			}
 			if (activeTxns.contains(transactionID)) {
 				this.signalRMKeepAlive(transactionID);
 				activeTxns.get(transactionID).lastActive = System.currentTimeMillis();
@@ -139,6 +155,9 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		    	// This is used to signal the local TM ONLY, other TMs are enlisted on an as needed basis
 		    	System.out.println("ENLIST received");
 		    	this.tm.enlist(transactionID);
+		    case CRASH:
+
+		    	break;
 			default:
 				break;
 			}

@@ -3,6 +3,8 @@ package shared;
 import java.io.Serializable;
 import java.util.Vector;
 
+import middleware.ServerMode;
+
 public class RequestDescriptor implements Serializable {
 
 	private static final long serialVersionUID = -1943991785815079042L;
@@ -18,6 +20,7 @@ public class RequestDescriptor implements Serializable {
     public int numCars;
     public String location;
     public int customerNumber;
+    public ServerMode serverToCrash;
 
     public Vector<Integer> flightNumbers;
 	
@@ -38,6 +41,7 @@ public class RequestDescriptor implements Serializable {
 				+ "numRooms = " + this.numRooms + "\n"
 				+ "numCars = " + this.numCars + "\n"
 				+ "location = " + this.location + "\n"
-				+ "customerNumber = " + this.customerNumber;
+				+ "customerNumber = " + this.customerNumber + "\n"
+				+ "serverToCrash = " + this.serverToCrash;
 	}
 }
