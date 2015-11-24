@@ -5,11 +5,11 @@ public interface TransactionManager {
 	
 	public int enlist(int transactionID);
 	
-	public boolean commitTransaction(int transactionID) throws AbortedTransactionException, TransactionNotActiveException;
+	public boolean twoPhaseCommitTransaction(int transactionID) throws NotWaitingForVoteResultException;
 	
-	public boolean abortTransaction(int transactionID) throws TransactionNotActiveException;
+	public boolean abortTransaction(int transactionID) throws TransactionNotActiveException, TransactionBlockingException;
 
-	public boolean abortAllActiveTransactions(); 
+	public boolean abortAllActiveTransactions() throws TransactionBlockingException; 
 
 	//RM methods, with additional transactionID. These methods will call the RM methods and aquire the correct locks
     public boolean addFlight(int transactionID, int flightNumber, int numSeats, int flightPrice) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException; 
@@ -89,7 +89,9 @@ public interface TransactionManager {
     public boolean reserveRoom(int transactionID, int customerNumber, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException;
     
     /* Returns true if transaction can be committed */
-	boolean prepare(int transactionID) throws AbortedTransactionException, TransactionNotActiveException;
+	boolean prepare(int transactionID) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException;
+
+	boolean twoPhaseAbortTransaction(int transactionID) throws NotWaitingForVoteResultException;
 
 
 

@@ -38,32 +38,20 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		ResponseType responseType = null;
 		int transactionID = request.transactionID;
 		try{	
-			//crash doesn't need a valid transactionID
-			if(request.requestType == RequestType.CRASH){
-				if(request.serverToCrash == null){
-					throw new Exception();
-				}
-				System.out.println("CRASH received");
-		    	ServerMode toCrash = request.serverToCrash;
-		    	RequestDescriptor selfDestructMessage = new RequestDescriptor(RequestType.SELFDESTRUCT);
-		    	if(toCrash == ServerMode.CUSTOMER){
-		    		rh.handleRequest(selfDestructMessage);
-		    	}else{
-		    		if(cm.modeIsConnected(toCrash)){
-		    			cm.getConnection(toCrash).sendRequest(selfDestructMessage);
-		    		}
-		    	}
-			}
 			if (activeTxns.contains(transactionID)) {
 				this.signalRMKeepAlive(transactionID);
 				activeTxns.get(transactionID).lastActive = System.currentTimeMillis();
 			} else if (request.requestType != RequestType.ABORTALL && 
 					request.requestType != RequestType.SHUTDOWN && 
-					request.requestType != RequestType.STARTTXN) {
+					request.requestType != RequestType.STARTTXN &&
+					request.requestType != RequestType.CRASH) {
 				throw new TransactionNotActiveException();
 			}
 			if (request.requestType == RequestType.ITINERARY) {
 				return reserveItinerary(request);
+			}
+			if(request.requestType == RequestType.CRASH){
+				crashServer(request);
 			}
 			
 			switch (request.requestType) {
@@ -103,24 +91,17 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            System.out.println("COMMIT received");
 	            boolean voteResult = twoPhaseCommitVoteRequest(transactionID);
 	            System.out.println("Vote result = " + voteResult);
-	            if(voteResult == true){
-	            	boolResponse = tm.commitTransaction(transactionID);
-	            	System.out.println("committed on middleware");
-	            	boolResponse = boolResponse && this.sendRequestToStarted(request);
-	            	System.out.println("committed on RMs");
-	            }else{
-	            	//abort all
-		            tm.abortTransaction(transactionID);
-	            	System.out.println("aborted on middleware");
-	            	RequestDescriptor abortRequest = new RequestDescriptor(RequestType.ABORT);
-	            	abortRequest.transactionID = request.transactionID;
-		            this.sendRequestToStarted(abortRequest);
-	            	System.out.println("aborted on RMs");
-		            //Return false on abort?
-		            boolResponse = false;
-		            activeTxns.remove(transactionID);
-	            }
-
+	           	RequestDescriptor voteResp = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
+	           	voteResp.canCommit = voteResult;
+	           	voteResp.transactionID = request.transactionID;
+	           	boolResponse = sendRequestToStarted(voteResp);
+	           	//TODO: Middleware does not commit here, need to figure this out
+	           	ResponseDescriptor localResponse = rh.handleRequest(voteResp);
+            	if (localResponse.responseType == ResponseType.BOOLEAN) {
+            		boolResponse = boolResponse && (boolean) localResponse.data; 
+            	} else {
+            		boolResponse = false;
+            	}
 	            activeTxns.remove(transactionID);
 	            break;
 		    case ABORT:
@@ -223,6 +204,22 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			return new ResponseDescriptor(intResponse);
 		}else{
 			return new ResponseDescriptor(boolResponse);
+		}
+	}
+
+	private void crashServer(RequestDescriptor request) throws Exception {
+		if(request.serverToCrash == null){
+			throw new Exception();
+		}
+		System.out.println("CRASH received");
+		ServerMode toCrash = request.serverToCrash;
+		RequestDescriptor selfDestructMessage = new RequestDescriptor(RequestType.SELFDESTRUCT);
+		if(toCrash == ServerMode.CUSTOMER){
+			rh.handleRequest(selfDestructMessage);
+		}else{
+			if(cm.modeIsConnected(toCrash)){
+				cm.getConnection(toCrash).sendRequest(selfDestructMessage);
+			}
 		}
 	}
 	

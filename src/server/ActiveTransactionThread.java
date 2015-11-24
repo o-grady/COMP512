@@ -21,7 +21,11 @@ public class ActiveTransactionThread extends AbstractTTLThread<Long> {
 
 	@Override
 	protected void abortTransaction(int transactionID) throws TransactionNotActiveException {
-		tm.abortTransaction(transactionID);
+		try {
+			tm.abortTransaction(transactionID);
+		} catch (TransactionBlockingException e) {
+			//this should not be hit, if transaction is blocking then TTL will not abort on timeout because timeout cannot occur when blocking
+		}
 	}
 
 

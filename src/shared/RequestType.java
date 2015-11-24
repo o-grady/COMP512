@@ -1,5 +1,4 @@
-package shared;
-
+package shared; 
 public enum RequestType {
 	NEWCAR,
     NEWFLIGHT,
@@ -30,5 +29,6 @@ public enum RequestType {
     ENLIST,
     ABORTALL,
     PREPARE,
-    SELFDESTRUCT
+    SELFDESTRUCT,
+    TWOPHASECOMMITVOTERESP
 }

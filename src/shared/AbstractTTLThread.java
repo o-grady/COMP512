@@ -1,9 +1,6 @@
 package shared;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,11 +11,11 @@ public abstract class AbstractTTLThread<T> extends Thread {
 
 	public AbstractTTLThread() {
 		this.activeTransactions = new ConcurrentHashMap<Integer, T>();
-		this.hangingTransactions = new ArrayList<Integer>();
+		this.hangingTransactions = new HashSet<Integer>();
 	}
 
 	protected Map<Integer, T> activeTransactions;
-	private List<Integer> hangingTransactions;
+	private Set<Integer> hangingTransactions;
 	private static final long TTL_INTERVAL = 60 * 1000;
 
 	public void run() {

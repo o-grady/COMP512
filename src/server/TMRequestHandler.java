@@ -124,9 +124,20 @@ public class TMRequestHandler implements IRequestHandler {
 	            System.out.println("STARTTXN received");
 	            intResponse = tm.startTransaction();
 	            break;
-		    case COMMIT:
+		    /*case COMMIT:
 	            System.out.println("COMMIT received");
 	            boolResponse =  tm.commitTransaction(request.transactionID);
+	            break;*/
+			case TWOPHASECOMMITVOTERESP:
+	            System.out.println("TWOPHASECOMMITVOTERESP received");
+	            if(request.canCommit){
+	            	System.out.println("Commiting transaction " + request.transactionID);
+	            	boolResponse = tm.twoPhaseCommitTransaction(request.transactionID);
+	            }else{
+	            	//call modified abort
+	            	System.out.println("Aborting transaction " + request.transactionID);
+	            	boolResponse = tm.twoPhaseAbortTransaction(request.transactionID);
+	            }
 	            break;
 		    case ABORT:
 	            System.out.println("ABORT received");
@@ -166,8 +177,11 @@ public class TMRequestHandler implements IRequestHandler {
 			responseType = ResponseType.ABORT;
 			stringResponse = "AbortedTransaction";
 		} catch (TransactionBlockingException e) {
-			responseType = ResponseType.BLOCKING;
+			responseType = ResponseType.ERROR;
 			stringResponse = "Transaction is blocking in commit phase";
+		} catch (NotWaitingForVoteResultException e) {
+			responseType = ResponseType.ERROR;
+			stringResponse = "Transaction was given a vote response and was not waiting for one";
 		}
 		if (responseType != null) {
 			return new ResponseDescriptor(responseType, stringResponse);

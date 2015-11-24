@@ -21,6 +21,7 @@ public class RequestDescriptor implements Serializable {
     public String location;
     public int customerNumber;
     public ServerMode serverToCrash;
+    public boolean canCommit;
 
     public Vector<Integer> flightNumbers;
 	
@@ -30,6 +31,8 @@ public class RequestDescriptor implements Serializable {
 		this.room = this.car = false;
 		this.location = null;
 		this.flightNumbers = null;
+		this.serverToCrash = null;
+		this.canCommit = false;
 	}
 	public String toString(){
 		return "transactionID = " + this.transactionID + "\n"

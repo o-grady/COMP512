@@ -5,8 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 
 import shared.LockManager.DeadlockException;
@@ -24,13 +23,13 @@ public class TransactionManagerImpl implements TransactionManager {
     private ActiveTransactionThread activeTransactions;
 	private int transactionCounter;
 	private String transactionLocation;
-	private List<Integer> transactionsIn2PC;
+	private Set<Integer> transactionsIn2PC;
 	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID){
 		this.rm = rm;
 		this.lm = lm;
 		this.activeTransactions = new ActiveTransactionThread(this);
 		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID + DIR_SUFFIX;
-		this.transactionsIn2PC = new ArrayList<Integer>();
+		this.transactionsIn2PC = new HashSet<Integer>();
 		File txnFolder = Paths.get(this.transactionLocation).toFile();
 		
 		//Make folder if it does not exist
@@ -90,6 +89,12 @@ public class TransactionManagerImpl implements TransactionManager {
 		return largestTxn;
 	}
 	
+	private void exceptionIfTransactionIsBlocking(int transactionID) throws TransactionBlockingException {
+		if(this.transactionsIn2PC.contains(transactionID)){
+			throw new TransactionBlockingException();
+		}
+	}
+
 	@Override
 	public synchronized int startTransaction() {
 		transactionCounter++;
@@ -100,7 +105,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 	
 	@Override
-	public int enlist(int id) {
+	public synchronized int enlist(int id) {
 		if (activeTransactions.contains(id)) {
 			activeTransactions.signalTransaction(id);
 		} else {
@@ -112,14 +117,18 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 
 	@Override
-	public boolean prepare(int transactionID){
+	public synchronized boolean prepare(int transactionID) throws TransactionBlockingException{
 		//Not sure that these exceptions should be thrown, because TMRequestHandler will catch and send String resp, want
 		//to send a boolean even if transaction is dead.
-		//TODO: need a log of 2PCStarted,txnid and 2PCVoteMod,txnid so that duplicate prepare, commit and aborts are ignored.
+		//TODO: need a log of 2PCStarted,txnid and 2PCVoteMade,txnid so that duplicate prepare, commit and aborts are ignored.
 		System.out.println("Starting prepare");
 		if(!activeTransactions.contains(transactionID)){
 			System.out.println("Transaction not active");
-			return false; 
+			return false;
+		}
+		if(this.transactionsIn2PC.contains(transactionID)){
+			//Already has been prepared
+			throw new TransactionBlockingException();
 		}
 		activeTransactions.signalTransaction(transactionID);
 		if (lm.isTransactionWaiting(transactionID)){
@@ -137,15 +146,17 @@ public class TransactionManagerImpl implements TransactionManager {
 		return true; 
 	}
 	@Override
-	public synchronized boolean commitTransaction(int transactionID) throws AbortedTransactionException, TransactionNotActiveException{
-		activeTransactions.signalTransaction(transactionID);
+	public synchronized boolean twoPhaseCommitTransaction(int transactionID) throws NotWaitingForVoteResultException{
+		//do not commit if transaction is not waiting for vote result
 		if(!this.transactionsIn2PC.contains(transactionID)){
-			return false;
+			throw new NotWaitingForVoteResultException();
 		}
 		//write new commit
 		if(!rm.writeDataToFile(COMMITED_STATE_PREFIX + transactionID, transactionLocation)){
-			abortTransaction(transactionID);
-			throw new AbortedTransactionException();
+			//TODO: not sure if this should happen, after getting a YES vote commit needs to be written, maybe some other type of error other than abort?
+			//abortTransaction(transactionID);
+			//throw new AbortedTransactionException();
+			System.out.println("ERROR: could not write commit state to stable storage");
 		};
 		
 		//Delete old committed transactions
@@ -173,14 +184,41 @@ public class TransactionManagerImpl implements TransactionManager {
 			e.printStackTrace();
 		}
 		System.out.println("Calling UnlockAll on " + transactionID);
-		lm.UnlockAll(transactionID);
+		activeTransactions.unhangTransaction(transactionID);
+		transactionsIn2PC.remove(transactionID);
 		activeTransactions.remove(transactionID);
+		lm.UnlockAll(transactionID);
 		return true;
 	}
 	
 	@Override
-	public synchronized boolean abortTransaction(int transactionID) throws TransactionNotActiveException {
-		//TODO: might need to separate normal abort and 2pc abort so that a different client cant call abort on a transaction waiting for a vote
+	public synchronized boolean twoPhaseAbortTransaction(int transactionID) throws NotWaitingForVoteResultException{
+		//do not abort if transaction is not waiting for vote result
+		if(!this.transactionsIn2PC.contains(transactionID)){
+			throw new NotWaitingForVoteResultException();
+		}
+		int mostRecentCommit = getMostRecentCommitNumber();
+		if(transactionID > mostRecentCommit){
+			rm.readOldStateFromFile(OLD_STATE_PREFIX + transactionID, transactionLocation);
+		}else{
+			// TODO: confirm with Grady
+			rm.readOldStateFromFile(COMMITED_STATE_PREFIX + mostRecentCommit, transactionLocation);
+		}
+		Path p = Paths.get(transactionLocation, OLD_STATE_PREFIX + transactionID);
+		//Remove Old State
+		try {
+			Files.delete(p);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		System.out.println("Calling UnlockAll on " + transactionID);
+		activeTransactions.remove(transactionID);
+		lm.UnlockAll(transactionID);
+		return true;
+	}
+	@Override
+	public synchronized boolean abortTransaction(int transactionID) throws TransactionNotActiveException, TransactionBlockingException {
+		exceptionIfTransactionIsBlocking(transactionID);
 		if(!activeTransactions.contains(transactionID)){
 			System.out.println("abortTransaction: transaction not active, throwing exception");
 			throw new TransactionNotActiveException();
@@ -201,13 +239,13 @@ public class TransactionManagerImpl implements TransactionManager {
 			e.printStackTrace();
 		}
 		System.out.println("Calling UnlockAll on " + transactionID);
-		lm.UnlockAll(transactionID);
 		activeTransactions.remove(transactionID);
+		lm.UnlockAll(transactionID);
 		return true;
 	}
 	
 	@Override
-	public boolean abortAllActiveTransactions(){
+	public boolean abortAllActiveTransactions() throws TransactionBlockingException{
 		Set<Integer> activeTransactionsCopy = activeTransactions.getAllActiveTransactions();
 		for( int transactionID : activeTransactionsCopy){
 			try {
@@ -221,9 +259,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	
 	@Override
 	public boolean addFlight(int transactionID, int flightNumber, int numSeats, int flightPrice) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
@@ -238,9 +274,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean deleteFlight(int transactionID, int flightNumber) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
@@ -255,9 +289,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryFlight(int transactionID, int flightNumber) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
@@ -272,9 +304,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryFlightPrice(int transactionID, int flightNumber) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
@@ -289,9 +319,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean addCars(int transactionID, String location, int numCars, int carPrice) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
@@ -306,9 +334,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean deleteCars(int transactionID, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
@@ -323,9 +349,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryCars(int transactionID, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
@@ -340,9 +364,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryCarsPrice(int transactionID, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
@@ -357,9 +379,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean addRooms(int transactionID, String location, int numRooms, int roomPrice) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
@@ -374,9 +394,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean deleteRooms(int transactionID, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
@@ -391,9 +409,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryRooms(int transactionID, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
@@ -408,9 +424,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int queryRoomsPrice(int transactionID, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
@@ -425,9 +439,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public int newCustomer(int transactionID) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			//No RMHashtable key associated with new customer. Instead lock string "newcustomer"
@@ -443,9 +455,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean newCustomerId(int transactionID, int customerNumber) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			//No RMHashtable key associated with new customer. Instead lock string "newcustomer"
@@ -461,9 +471,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean deleteCustomer(int transactionID, int customerNumber) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
@@ -478,9 +486,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public String queryCustomerInfo(int transactionID, int customerNumber) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.READ);
@@ -495,9 +501,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean reserveFlight(int transactionID, int customerNumber, int flightNumber) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
@@ -513,9 +517,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean reserveCar(int transactionID, int customerNumber, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
@@ -531,9 +533,7 @@ public class TransactionManagerImpl implements TransactionManager {
 
 	@Override
 	public boolean reserveRoom(int transactionID, int customerNumber, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException {
-		if(this.transactionsIn2PC.contains(transactionID)){
-			throw new TransactionBlockingException();		
-		}
+		exceptionIfTransactionIsBlocking(transactionID);
 		activeTransactions.signalTransaction(transactionID);
 		try {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
