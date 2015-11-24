@@ -117,14 +117,14 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 
 	@Override
-	public synchronized boolean prepare(int transactionID) throws TransactionBlockingException{
+	public synchronized boolean prepare(int transactionID) throws TransactionBlockingException, TransactionNotActiveException{
 		//Not sure that these exceptions should be thrown, because TMRequestHandler will catch and send String resp, want
 		//to send a boolean even if transaction is dead.
 		//TODO: need a log of 2PCStarted,txnid and 2PCVoteMade,txnid so that duplicate prepare, commit and aborts are ignored.
 		System.out.println("Starting prepare");
 		if(!activeTransactions.contains(transactionID)){
 			System.out.println("Transaction not active");
-			return false;
+			throw new TransactionNotActiveException();
 		}
 		if(this.transactionsIn2PC.contains(transactionID)){
 			//Already has been prepared

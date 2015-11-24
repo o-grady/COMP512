@@ -89,7 +89,7 @@ public interface TransactionManager {
     public boolean reserveRoom(int transactionID, int customerNumber, String location) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException;
     
     /* Returns true if transaction can be committed */
-	boolean prepare(int transactionID) throws AbortedTransactionException, TransactionNotActiveException, TransactionBlockingException;
+	boolean prepare(int transactionID) throws TransactionNotActiveException, TransactionBlockingException;
 
 	boolean twoPhaseAbortTransaction(int transactionID) throws NotWaitingForVoteResultException;
 

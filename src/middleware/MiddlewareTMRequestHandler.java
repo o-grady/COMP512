@@ -4,6 +4,7 @@ import java.util.Map;
 
 import server.AbortedTransactionException;
 import server.TMRequestHandler;
+import server.TransactionBlockingException;
 import server.TransactionManager;
 import server.TransactionNotActiveException;
 import shared.IRequestHandler;
@@ -408,7 +409,16 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		Map<ServerMode, Boolean> serversUsed = this.activeTxns.get(transactionID).hasStarted;
 		RequestDescriptor request = null;
 		for( ServerMode mode : ServerMode.values() ){
-			if(serversUsed.get(mode)){
+			//if(serversUsed.get(mode) || mode == ServerMode.CUSTOMER){
+			if(mode == ServerMode.CUSTOMER){
+				try {
+					tm.prepare(transactionID);
+				} catch (TransactionNotActiveException e) {
+
+				} catch (TransactionBlockingException e) {
+
+				}
+			}else if(serversUsed.get(mode)){
 				request = new RequestDescriptor(RequestType.PREPARE);
 				request.transactionID = transactionID;
 				try {
