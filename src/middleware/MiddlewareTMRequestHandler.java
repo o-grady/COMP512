@@ -7,7 +7,10 @@ import server.TMRequestHandler;
 import server.TransactionBlockingException;
 import server.TransactionManager;
 import server.TransactionNotActiveException;
+import shared.CommitLogger;
+import shared.CommitLoggerImpl;
 import shared.IRequestHandler;
+import shared.LogType;
 import shared.RequestDescriptor;
 import shared.RequestType;
 import shared.ResponseDescriptor;
@@ -17,17 +20,17 @@ import shared.ServerConnection;
 public class MiddlewareTMRequestHandler implements IRequestHandler {
 	private static final int TWO_PHASE_COMMIT_TIMEOUT = 10000;
 	private ConnectionManager cm;
-	private TransactionManager tm;
-	private TMRequestHandler rh;
 	private MiddlewareActiveTransactionThread activeTxns; 
-
+	private int transactionCounter;
+	private CommitLogger logger;
 	
-	public MiddlewareTMRequestHandler(ConnectionManager cm, TransactionManager tm, TMRequestHandler rh) {
+	public MiddlewareTMRequestHandler(ConnectionManager cm) {
 		this.cm = cm;
-		this.tm = tm;
-		this.rh = rh;
 		this.activeTxns = new MiddlewareActiveTransactionThread();
 		this.activeTxns.start();
+		//TODO: read from log file to set transaction counter
+		this.transactionCounter = 0;
+		this.logger = new CommitLoggerImpl("middlewareLog.txt");
 	}
 
 	@Override
@@ -85,37 +88,19 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				break;
 			case STARTTXN:
 	            System.out.println("STARTTXN received");
-	            intResponse = tm.startTransaction();
-	            activeTxns.add(intResponse);
+	            intResponse = this.startTransaction();
 	            break;
 		    case COMMIT:
 	            System.out.println("COMMIT received");
-	            boolean voteResult = twoPhaseCommitVoteRequest(transactionID);
-	            System.out.println("Vote result = " + voteResult);
-	           	RequestDescriptor voteResp = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
-	           	voteResp.canCommit = voteResult;
-	           	voteResp.transactionID = request.transactionID;
-	           	boolResponse = sendRequestToStarted(voteResp);
-	           	//TODO: Middleware does not commit here, need to figure this out
-	           	ResponseDescriptor localResponse = rh.handleRequest(voteResp);
-            	if (localResponse.responseType == ResponseType.BOOLEAN) {
-            		boolResponse = boolResponse && (boolean) localResponse.data; 
-            	} else {
-            		boolResponse = false;
-            	}
-	            activeTxns.remove(transactionID);
+	            boolResponse = twoPhaseCommit(transactionID);
 	            break;
 		    case ABORT:
 	            System.out.println("ABORT received");
-	            boolResponse = tm.abortTransaction(transactionID);
-	            
-	            boolResponse = boolResponse && this.sendRequestToStarted(request);
-	            
+	            boolResponse = this.sendRequestToStarted(request);
 	            activeTxns.remove(transactionID);
 	            break;
 		    case SHUTDOWN:
 	            System.out.println("SHUTDOWN received");
-	            boolResponse = tm.abortAllActiveTransactions();
 				for( ServerConnection connection : cm.getAllConnections()){
 					try {
 						connection.sendRequest(request);
@@ -134,13 +119,6 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            }
 	            
 	            break;
-		    case ENLIST:
-		    	// This is used to signal the local TM ONLY, other TMs are enlisted on an as needed basis
-		    	System.out.println("ENLIST received");
-		    	this.tm.enlist(transactionID);
-		    case CRASH:
-
-		    	break;
 			default:
 				break;
 			}
@@ -150,26 +128,18 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				if (request.requestType == RequestType.QUERYCUSTOMER){
 					return this.queryCustomer(request);
 				} else {
-					// run the customer request on the local RM
-					ResponseDescriptor rd = rh.handleRequest(request);
-					// check for abort condition
-					if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
-						this.abortTransaction(transactionID);
-						return rd;
-					} else {
-						// enlist the RMs if not already started
-						this.checkAndEnlistAll(transactionID);
-						// bounce the request out to all RMs
-						for(ServerConnection connection : cm.getAllConnections()) {
-							rd = connection.sendRequest(request);
-							// check for abort condition
-							if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
-								this.abortTransaction(transactionID);
-								return rd;
-							}
+					ResponseDescriptor rd = null;
+					// enlist the RMs if not already started
+					this.checkAndEnlistAll(transactionID);
+					// bounce the request out to all RMs
+					for(ServerConnection connection : cm.getAllConnections()) {
+						rd = connection.sendRequest(request);
+						// check for abort condition
+						if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
+							this.abortTransaction(transactionID);
+							return rd;
 						}
 					}
-					
 					return rd;
 				}
 			} else if (cm.modeIsConnected(mode)) {
@@ -208,6 +178,32 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		}
 	}
 
+	private boolean twoPhaseCommit(int transactionID) throws Exception {
+		logger.log(LogType.VOTESTARTED, transactionID);
+		boolean boolResponse;
+		boolean voteResult = twoPhaseCommitVoteRequest(transactionID);
+		System.out.println("Vote result = " + voteResult);
+		if(voteResult){
+			logger.log(LogType.COMMITED, transactionID);
+		}else{
+			logger.log(LogType.ABORTED, transactionID);
+		}
+		RequestDescriptor voteResp = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
+		voteResp.canCommit = voteResult;
+		voteResp.transactionID = transactionID;
+		boolResponse = sendRequestToStarted(voteResp);
+		activeTxns.remove(transactionID);
+		logger.log(LogType.DONE, transactionID);
+		return boolResponse;
+	}
+
+	private int startTransaction() {
+		transactionCounter++;
+		logger.log(LogType.STARTED, transactionCounter);
+	    activeTxns.add(transactionCounter);
+		return transactionCounter;
+	}
+
 	private void crashServer(RequestDescriptor request) throws Exception {
 		if(request.serverToCrash == null){
 			throw new Exception();
@@ -215,8 +211,9 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		System.out.println("CRASH received");
 		ServerMode toCrash = request.serverToCrash;
 		RequestDescriptor selfDestructMessage = new RequestDescriptor(RequestType.SELFDESTRUCT);
+		//using customer for middleware here
 		if(toCrash == ServerMode.CUSTOMER){
-			rh.handleRequest(selfDestructMessage);
+			System.exit(1);
 		}else{
 			if(cm.modeIsConnected(toCrash)){
 				cm.getConnection(toCrash).sendRequest(selfDestructMessage);
@@ -282,7 +279,6 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		RequestDescriptor req = new RequestDescriptor(RequestType.ENLIST);
 		req.transactionID = transactionID;
 		try {
-			this.tm.enlist(transactionID);
 			this.sendRequestToStarted(req);
 		} catch (Exception ex) {
 			ex.printStackTrace();
@@ -409,16 +405,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		Map<ServerMode, Boolean> serversUsed = this.activeTxns.get(transactionID).hasStarted;
 		RequestDescriptor request = null;
 		for( ServerMode mode : ServerMode.values() ){
-			//if(serversUsed.get(mode) || mode == ServerMode.CUSTOMER){
-			if(mode == ServerMode.CUSTOMER){
-				try {
-					tm.prepare(transactionID);
-				} catch (TransactionNotActiveException e) {
-
-				} catch (TransactionBlockingException e) {
-
-				}
-			}else if(serversUsed.get(mode)){
+			if(serversUsed.get(mode)){
 				request = new RequestDescriptor(RequestType.PREPARE);
 				request.transactionID = transactionID;
 				try {

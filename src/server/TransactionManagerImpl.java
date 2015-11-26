@@ -8,6 +8,9 @@ import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Set;
 
+import shared.CommitLogger;
+import shared.CommitLoggerImpl;
+import shared.LogType;
 import shared.LockManager.DeadlockException;
 import shared.LockManager.LockManager;
 
@@ -24,6 +27,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	private int transactionCounter;
 	private String transactionLocation;
 	private Set<Integer> transactionsIn2PC;
+	private CommitLogger logger;
 	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID){
 		this.rm = rm;
 		this.lm = lm;
@@ -34,6 +38,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		
 		//Make folder if it does not exist
 		txnFolder.mkdirs();
+		logger = new CommitLoggerImpl(this.transactionLocation + File.separator + "log.txt");
 		this.transactionCounter = getMostRecentCommitNumber();
 		System.out.println("TransactionCounter initialized to " + transactionCounter);
 		if (transactionCounter > 0) {
@@ -112,6 +117,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			String fileName = OLD_STATE_PREFIX + id;
 			rm.writeDataToFile(fileName, transactionLocation);
 			activeTransactions.add(id);
+			logger.log(LogType.STARTED, id);
 		}
 		return id;
 	}
@@ -143,6 +149,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		}
 		activeTransactions.hangTransaction(transactionID);
 		this.transactionsIn2PC.add(transactionID);
+		logger.log(LogType.YESVOTESENT, transactionID);
 		return true; 
 	}
 	@Override
@@ -151,6 +158,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		if(!this.transactionsIn2PC.contains(transactionID)){
 			throw new NotWaitingForVoteResultException();
 		}
+		logger.log(LogType.COMMITED, transactionID);
 		//write new commit
 		if(!rm.writeDataToFile(COMMITED_STATE_PREFIX + transactionID, transactionLocation)){
 			//TODO: not sure if this should happen, after getting a YES vote commit needs to be written, maybe some other type of error other than abort?
@@ -197,6 +205,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		if(!this.transactionsIn2PC.contains(transactionID)){
 			throw new NotWaitingForVoteResultException();
 		}
+		logger.log(LogType.ABORTED, transactionID);
 		int mostRecentCommit = getMostRecentCommitNumber();
 		if(transactionID > mostRecentCommit){
 			rm.readOldStateFromFile(OLD_STATE_PREFIX + transactionID, transactionLocation);
@@ -223,7 +232,9 @@ public class TransactionManagerImpl implements TransactionManager {
 			System.out.println("abortTransaction: transaction not active, throwing exception");
 			throw new TransactionNotActiveException();
 		}
+		logger.log(LogType.ABORTED, transactionID);
 		activeTransactions.signalTransaction(transactionID);
+		logger.log(LogType.ABORTED, transactionID);
 		int mostRecentCommit = getMostRecentCommitNumber();
 		if(transactionID > mostRecentCommit){
 			rm.readOldStateFromFile(OLD_STATE_PREFIX + transactionID, transactionLocation);
@@ -245,13 +256,15 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 	
 	@Override
-	public boolean abortAllActiveTransactions() throws TransactionBlockingException{
+	public boolean abortAllActiveTransactions() {
 		Set<Integer> activeTransactionsCopy = activeTransactions.getAllActiveTransactions();
 		for( int transactionID : activeTransactionsCopy){
 			try {
 				this.abortTransaction(transactionID);
 			} catch (TransactionNotActiveException e) {
 				//This should never hit, only aborting transactions in active set
+			} catch (TransactionBlockingException e) {
+				//Cant abort transactions waiting for vote result
 			}
 		}
 		return true;

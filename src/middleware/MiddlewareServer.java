@@ -26,20 +26,14 @@ public class MiddlewareServer {
 
     public MiddlewareServer(int port) {
     	cm = new ConnectionManager();
-    	customerRM = new ResourceManagerImpl();
-    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), TransactionManagerImpl.RESERVED_ID);
-    	customerTMRH = new TMRequestHandler(customerTM);    	
-    	rh = new MiddlewareTMRequestHandler(cm, customerTM, customerTMRH);
+    	rh = new MiddlewareTMRequestHandler(cm); 
     	wm = new WelcomeManager(rh, port);
     	wm.startThread();
 	}
     public MiddlewareServer(int port, String carHost, int carPort, String flightHost,
     		int flightPort, String roomHost, int roomPort) {
     	cm = new ConnectionManager();
-    	customerRM = new ResourceManagerImpl();
-    	customerTM = new TransactionManagerImpl(customerRM, new LockManager(), TransactionManagerImpl.RESERVED_ID);
-    	customerTMRH = new TMRequestHandler(customerTM);
-    	rh = new MiddlewareTMRequestHandler(cm, customerTM, customerTMRH);
+    	rh = new MiddlewareTMRequestHandler(cm);
     	wm = new WelcomeManager(rh, port);
     	wm.startThread();
     	//connect the servers
