@@ -29,8 +29,9 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		this.activeTxns = new MiddlewareActiveTransactionThread();
 		this.activeTxns.start();
 		//TODO: read from log file to set transaction counter
-		this.transactionCounter = 0;
 		this.logger = new CommitLoggerImpl("middlewareLog.txt");
+		this.transactionCounter = this.logger.largestTransactionInLog();
+		System.out.println("Transaction Counter Initialized to " + this.transactionCounter);
 	}
 
 	@Override
@@ -65,6 +66,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			case QUERYCARPRICE:
 			case RESERVECAR:
 				mode = ServerMode.CAR;
+				System.out.println("mode = ServerMode.CAR");
 				break;
 			case DELETEFLIGHT:
 			case NEWFLIGHT:
@@ -72,6 +74,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			case QUERYFLIGHTPRICE:
 			case RESERVEFLIGHT:
 				mode = ServerMode.FLIGHT;
+				System.out.println("mode = ServerMode.FLIGHT");
 				break;
 			case DELETEROOM:
 			case NEWROOM:
@@ -79,12 +82,14 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			case QUERYROOMPRICE:
 			case RESERVEROOM:
 				mode = ServerMode.ROOM;
+				System.out.println("mode = ServerMode.ROOM");
 				break;
 			case DELETECUSTOMER:
 			case NEWCUSTOMER:
 			case NEWCUSTOMERID:
 			case QUERYCUSTOMER:
 				mode = ServerMode.CUSTOMER;
+				System.out.println("mode = ServerMode.CUSTOMER");
 				break;
 			case STARTTXN:
 	            System.out.println("STARTTXN received");
@@ -96,6 +101,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            break;
 		    case ABORT:
 	            System.out.println("ABORT received");
+	            logger.log(LogType.ABORTED, transactionID);
 	            boolResponse = this.sendRequestToStarted(request);
 	            activeTxns.remove(transactionID);
 	            break;
@@ -229,7 +235,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	
 	private boolean sendRequestToStarted(RequestDescriptor request) throws Exception {
 		boolean boolResponse = true;
-		
+		System.out.println("sendRequestToStarted: request = " + request.toString());
         for (ServerMode sm : ServerMode.values()) {
             if (activeTxns.get(request.transactionID).hasStarted.get(sm)) {
             	ServerConnection sc = cm.getConnection(sm);

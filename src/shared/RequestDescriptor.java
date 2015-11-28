@@ -35,7 +35,8 @@ public class RequestDescriptor implements Serializable {
 		this.canCommit = false;
 	}
 	public String toString(){
-		return "transactionID = " + this.transactionID + "\n"
+		return "requstType = " + this.requestType.toString() + "\n" 
+				+ "transactionID = " + this.transactionID + "\n"
 				+ "flightNumber = " + this.flightNumber + "\n"
 				+ "numSeats = " + this.numSeats + "\n"
 				+ "room = " + this.room + "\n"

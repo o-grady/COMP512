@@ -120,14 +120,6 @@ public class TMRequestHandler implements IRequestHandler {
 				// Integer.parseInt(request[3]), Integer.parseInt(request[4]));
 				// outToClient.writeBytes("ITINERARY received");
 				break;
-			case STARTTXN:
-	            System.out.println("STARTTXN received");
-	            intResponse = tm.startTransaction();
-	            break;
-		    /*case COMMIT:
-	            System.out.println("COMMIT received");
-	            boolResponse =  tm.commitTransaction(request.transactionID);
-	            break;*/
 			case TWOPHASECOMMITVOTERESP:
 	            System.out.println("TWOPHASECOMMITVOTERESP received");
 	            if(request.canCommit){

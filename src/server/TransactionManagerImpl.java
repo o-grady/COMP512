@@ -24,7 +24,6 @@ public class TransactionManagerImpl implements TransactionManager {
 	//lock data using following scheme: (flight|car|room|customer) + ID
 	private LockManager lm;
     private ActiveTransactionThread activeTransactions;
-	private int transactionCounter;
 	private String transactionLocation;
 	private Set<Integer> transactionsIn2PC;
 	private CommitLogger logger;
@@ -39,10 +38,10 @@ public class TransactionManagerImpl implements TransactionManager {
 		//Make folder if it does not exist
 		txnFolder.mkdirs();
 		logger = new CommitLoggerImpl(this.transactionLocation + File.separator + "log.txt");
-		this.transactionCounter = getMostRecentCommitNumber();
-		System.out.println("TransactionCounter initialized to " + transactionCounter);
-		if (transactionCounter > 0) {
-			rm.readOldStateFromFile(COMMITED_STATE_PREFIX + transactionCounter, transactionLocation);
+		int mostRecentCommit = logger.mostRecentlyCommittedTransaction();
+		if (mostRecentCommit > 0) {
+			System.out.println("Setting contents to commit number " + mostRecentCommit);
+			rm.readOldStateFromFile(COMMITED_STATE_PREFIX + mostRecentCommit, transactionLocation);
 		}
 		
 		// Clean up leftover files
@@ -53,7 +52,7 @@ public class TransactionManagerImpl implements TransactionManager {
 				if (fileName.startsWith(COMMITED_STATE_PREFIX)) {
 					String noPrefix = filesInTxnFolder[i].getName().substring(COMMITED_STATE_PREFIX.length());
 					int txnNumber = Integer.parseInt(noPrefix);
-					if(txnNumber != this.transactionCounter) {
+					if(txnNumber != mostRecentCommit) {
 						try {
 							Files.deleteIfExists(filesInTxnFolder[i].toPath());
 						} catch (IOException e1) {
@@ -74,25 +73,6 @@ public class TransactionManagerImpl implements TransactionManager {
 		this.activeTransactions.start();
 	}
 
-	private int getMostRecentCommitNumber(){
-		int largestTxn = 0;
-		File txnFolder = Paths.get(this.transactionLocation).toFile();
-		//Make folder if it does not exist
-		File[] filesInTxnFolder =  txnFolder.listFiles();
-		//Find the most recent commit
-		for(int i = 0 ; i < filesInTxnFolder.length ; i++){
-			if(filesInTxnFolder[i].isFile()){
-				if(filesInTxnFolder[i].getName().startsWith(COMMITED_STATE_PREFIX)){
-					String noPrefix = filesInTxnFolder[i].getName().substring(COMMITED_STATE_PREFIX.length());
-					int txnNumber = Integer.parseInt(noPrefix);
-					if( largestTxn < txnNumber){
-						largestTxn = txnNumber;
-					}
-				}
-			}
-		}
-		return largestTxn;
-	}
 	
 	private void exceptionIfTransactionIsBlocking(int transactionID) throws TransactionBlockingException {
 		if(this.transactionsIn2PC.contains(transactionID)){
@@ -100,19 +80,14 @@ public class TransactionManagerImpl implements TransactionManager {
 		}
 	}
 
-	@Override
-	public synchronized int startTransaction() {
-		transactionCounter++;
-		String fileName = OLD_STATE_PREFIX + transactionCounter;
-		rm.writeDataToFile(fileName, transactionLocation);
-		activeTransactions.add(transactionCounter);
-		return transactionCounter;
-	}
 	
 	@Override
-	public synchronized int enlist(int id) {
+	public synchronized int enlist(int id) throws AbortedTransactionException {
 		if (activeTransactions.contains(id)) {
 			activeTransactions.signalTransaction(id);
+		} else if(logger.hasLog(LogType.ABORTED, id)) {
+			throw new AbortedTransactionException();
+			//dont enlist a previously aborted transaction
 		} else {
 			String fileName = OLD_STATE_PREFIX + id;
 			rm.writeDataToFile(fileName, transactionLocation);
@@ -174,7 +149,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			if(filesInTxnFolder[i].isFile() && filesInTxnFolder[i].getName().startsWith(COMMITED_STATE_PREFIX)) {
 				String noPrefix = filesInTxnFolder[i].getName().substring(COMMITED_STATE_PREFIX.length());
 				int txnNumber = Integer.parseInt(noPrefix);
-				if(txnNumber < transactionID) {
+				if(txnNumber != transactionID) {
 					try {
 						Files.deleteIfExists(filesInTxnFolder[i].toPath());
 					} catch (IOException e1) {
@@ -206,8 +181,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			throw new NotWaitingForVoteResultException();
 		}
 		logger.log(LogType.ABORTED, transactionID);
-		int mostRecentCommit = getMostRecentCommitNumber();
-		if(transactionID > mostRecentCommit){
+		int mostRecentCommit = logger.mostRecentCommitSinceTransactionStart(transactionID);
+		if(mostRecentCommit ==  -1){
 			rm.readOldStateFromFile(OLD_STATE_PREFIX + transactionID, transactionLocation);
 		}else{
 			// TODO: confirm with Grady
@@ -233,10 +208,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			throw new TransactionNotActiveException();
 		}
 		logger.log(LogType.ABORTED, transactionID);
-		activeTransactions.signalTransaction(transactionID);
-		logger.log(LogType.ABORTED, transactionID);
-		int mostRecentCommit = getMostRecentCommitNumber();
-		if(transactionID > mostRecentCommit){
+		int mostRecentCommit = logger.mostRecentCommitSinceTransactionStart(transactionID);
+		if(mostRecentCommit ==  -1){
 			rm.readOldStateFromFile(OLD_STATE_PREFIX + transactionID, transactionLocation);
 		}else{
 			// TODO: confirm with Grady

@@ -1,9 +1,8 @@
 package server;
 
 public interface TransactionManager {
-	public int startTransaction();
 	
-	public int enlist(int transactionID);
+	public int enlist(int transactionID) throws AbortedTransactionException;
 	
 	public boolean twoPhaseCommitTransaction(int transactionID) throws NotWaitingForVoteResultException;
 	

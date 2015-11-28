@@ -8,4 +8,8 @@ public interface CommitLogger {
 
 	int largestTransactionInLog();
 
+	int mostRecentlyCommittedTransaction();
+
+	int mostRecentCommitSinceTransactionStart(int transactionID);
+
 }
