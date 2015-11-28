@@ -28,10 +28,73 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		this.cm = cm;
 		this.activeTxns = new MiddlewareActiveTransactionThread();
 		this.activeTxns.start();
-		//TODO: read from log file to set transaction counter
 		this.logger = new CommitLoggerImpl("middlewareLog.txt");
 		this.transactionCounter = this.logger.largestTransactionInLog();
 		System.out.println("Transaction Counter Initialized to " + this.transactionCounter);
+		for(int i = 0 ; i <= this.transactionCounter ; i++ ){
+			if(logger.hasLog(LogType.STARTED, i)){
+				if(logger.hasLog(LogType.VOTESTARTED, i)){
+					if(logger.hasLog(LogType.COMMITED, i)){
+						if(!logger.hasLog(LogType.DONE, i)){
+							this.reconnectServers(i);
+							//resend commits
+							System.out.println("Resending COMMIT vote");
+							resend2PhaseResponse(i, true);
+						}
+					}else if(logger.hasLog(LogType.ABORTED, i)){
+						if(!logger.hasLog(LogType.DONE, i)){
+							this.reconnectServers(i);
+							//resend abort
+							System.out.println("Resending ABORT vote");
+							resend2PhaseResponse(i, false);
+						}	
+					}else{
+						if(!logger.hasLog(LogType.DONE, i)){
+							this.reconnectServers(i);
+							System.out.println("Sending ABORT vote");
+							resend2PhaseResponse(i, false);
+						}
+					}
+				}else{
+					if(logger.hasLog(LogType.ABORTED, i)){
+						if(!logger.hasLog(LogType.DONE, i)){
+							this.reconnectServers(i);
+							//resend abort (non 2PC vote)
+							System.out.println("Sending abort (non 2PC vote)");
+							this.abortTransaction(i);
+						}	
+					}
+				}
+			}
+		}
+	}
+	private boolean resend2PhaseResponse(int transactionID, boolean voteResult){
+		RequestDescriptor voteResp = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
+		voteResp.canCommit = voteResult;
+		voteResp.transactionID = transactionID;
+		boolean boolResponse = false;
+		try {
+			boolResponse = sendRequestToStarted(voteResp);
+		} catch (Exception e) {
+			System.out.println("Problem resending 2PC vote");
+			e.printStackTrace();
+		}
+		activeTxns.remove(transactionID);
+		logger.log(LogType.DONE, transactionID);
+		System.out.println("resend2PhaseResponse: returning " + boolResponse);
+		return boolResponse;	
+	}
+	private void reconnectServers(int transactionID) {
+		activeTxns.add(transactionID);
+		if(logger.hasLog(LogType.CARENLISTED, transactionID)){
+			activeTxns.get(transactionID).hasStarted.put(ServerMode.CAR, true);
+		}
+		if(logger.hasLog(LogType.FLIGHTENLISTED, transactionID)){
+			activeTxns.get(transactionID).hasStarted.put(ServerMode.FLIGHT, true);
+		}
+		if(logger.hasLog(LogType.ROOMENLISTED, transactionID)){
+			activeTxns.get(transactionID).hasStarted.put(ServerMode.ROOM, true);
+		}
 	}
 
 	@Override
@@ -103,6 +166,9 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            System.out.println("ABORT received");
 	            logger.log(LogType.ABORTED, transactionID);
 	            boolResponse = this.sendRequestToStarted(request);
+	            if(boolResponse == true){
+	            	logger.log(LogType.DONE, transactionID);
+	            }
 	            activeTxns.remove(transactionID);
 	            break;
 		    case SHUTDOWN:
@@ -235,9 +301,9 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	
 	private boolean sendRequestToStarted(RequestDescriptor request) throws Exception {
 		boolean boolResponse = true;
-		System.out.println("sendRequestToStarted: request = " + request.toString());
         for (ServerMode sm : ServerMode.values()) {
             if (activeTxns.get(request.transactionID).hasStarted.get(sm)) {
+            	System.out.println("IN sendRequestToStarted, sm = " + sm);
             	ServerConnection sc = cm.getConnection(sm);
             	ResponseDescriptor rd = sc.sendRequest(request);
             	if (rd.responseType == ResponseType.BOOLEAN) {
@@ -258,6 +324,13 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		try {
 			if (!activeTxns.get(transactionID).hasStarted.get(mode)) {
 				sc.sendRequest(req);
+				if(mode == ServerMode.CAR){
+					logger.log(LogType.CARENLISTED, transactionID);
+				}else if(mode == ServerMode.FLIGHT){
+					logger.log(LogType.FLIGHTENLISTED, transactionID);
+				}else if(mode == ServerMode.ROOM){
+					logger.log(LogType.ROOMENLISTED, transactionID);
+				}
 				activeTxns.get(transactionID).hasStarted.put(mode, true);
 			}
 		} catch (Exception e) {
@@ -273,6 +346,13 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            if (mode != ServerMode.CUSTOMER && !activeTxns.get(transactionID).hasStarted.get(mode)) {
 	            	ServerConnection sc = cm.getConnection(mode);
 	            	sc.sendRequest(req);
+					if(mode == ServerMode.CAR){
+						logger.log(LogType.CARENLISTED, transactionID);
+					}else if(mode == ServerMode.FLIGHT){
+						logger.log(LogType.FLIGHTENLISTED, transactionID);
+					}else if(mode == ServerMode.ROOM){
+						logger.log(LogType.ROOMENLISTED, transactionID);
+					}
 	            	activeTxns.get(transactionID).hasStarted.put(mode, true);
 	            }
 	        }

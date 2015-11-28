@@ -175,6 +175,7 @@ public class TMRequestHandler implements IRequestHandler {
 			responseType = ResponseType.ERROR;
 			stringResponse = "Transaction was given a vote response and was not waiting for one";
 		}
+		System.out.println("TM String Resp = " + stringResponse);
 		if (responseType != null) {
 			return new ResponseDescriptor(responseType, stringResponse);
 		}

@@ -33,9 +33,6 @@ public class MiddlewareServer {
     public MiddlewareServer(int port, String carHost, int carPort, String flightHost,
     		int flightPort, String roomHost, int roomPort) {
     	cm = new ConnectionManager();
-    	rh = new MiddlewareTMRequestHandler(cm);
-    	wm = new WelcomeManager(rh, port);
-    	wm.startThread();
     	//connect the servers
     	for(int i = 0 ; i < 3 ; i++){
 			ServerMode mode = null;
@@ -70,6 +67,9 @@ public class MiddlewareServer {
 				System.out.println("Failed.");
 			}
     	}
+    	rh = new MiddlewareTMRequestHandler(cm);
+    	wm = new WelcomeManager(rh, port);
+    	wm.startThread();
 	}
 	public static void main(String[] args) {
 		scanner = new Scanner(System.in);
