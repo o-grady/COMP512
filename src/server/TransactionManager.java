@@ -1,5 +1,7 @@
 package server;
 
+import java.util.Set;
+
 public interface TransactionManager {
 	
 	public int enlist(int transactionID) throws AbortedTransactionException;
@@ -91,6 +93,8 @@ public interface TransactionManager {
 	boolean prepare(int transactionID) throws TransactionNotActiveException, TransactionBlockingException;
 
 	boolean twoPhaseAbortTransaction(int transactionID) throws NotWaitingForVoteResultException;
+
+	Set<Integer> getStartupVoteResponsesNeeded();
 
 
 

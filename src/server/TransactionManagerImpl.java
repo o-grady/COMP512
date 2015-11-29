@@ -26,6 +26,7 @@ public class TransactionManagerImpl implements TransactionManager {
     private ActiveTransactionThread activeTransactions;
 	private String transactionLocation;
 	private Set<Integer> transactionsIn2PC;
+	private Set<Integer> startupVoteResponsesNeeded;
 	private CommitLogger logger;
 	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID){
 		this.rm = rm;
@@ -33,6 +34,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		this.activeTransactions = new ActiveTransactionThread(this);
 		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID + DIR_SUFFIX;
 		this.transactionsIn2PC = new HashSet<Integer>();
+		this.startupVoteResponsesNeeded = new HashSet<Integer>();
 		File txnFolder = Paths.get(this.transactionLocation).toFile();
 		
 		//Make folder if it does not exist
@@ -69,11 +71,30 @@ public class TransactionManagerImpl implements TransactionManager {
 				}
 			}
 		}
-		
 		this.activeTransactions.start();
+		int largestTxn = logger.largestTransactionInLog();
+		for(int i = 0 ; i <= largestTxn ; i++ ){
+			if(logger.hasLog(LogType.STARTED, i)){
+				if(logger.hasLog(LogType.YESVOTESENT, i)){
+					if(!logger.hasLog(LogType.COMMITTED, i) && !logger.hasLog(LogType.ABORTED, i)){
+						System.out.println("Transaction " + i + " added to startupVoteResponsesNeeded");
+						activeTransactions.add(i);
+						activeTransactions.hangTransaction(i);
+						transactionsIn2PC.add(i);
+						startupVoteResponsesNeeded.add(i);
+					}
+				}else{
+					//Add abort log, dont need to actually abort as state is not altered,
+					//Shouldn't need to notify middleware, next time it asks about txn it will get an Aborted response. 
+					logger.log(LogType.ABORTED, i);
+				}
+			}
+		}
 	}
-
-	
+	@Override
+	public Set<Integer> getStartupVoteResponsesNeeded(){
+		return this.startupVoteResponsesNeeded;
+	}
 	private void exceptionIfTransactionIsBlocking(int transactionID) throws TransactionBlockingException {
 		if(this.transactionsIn2PC.contains(transactionID)){
 			throw new TransactionBlockingException();
@@ -133,7 +154,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		if(!this.transactionsIn2PC.contains(transactionID)){
 			throw new NotWaitingForVoteResultException();
 		}
-		logger.log(LogType.COMMITED, transactionID);
+		logger.log(LogType.COMMITTED, transactionID);
 		//write new commit
 		if(!rm.writeDataToFile(COMMITED_STATE_PREFIX + transactionID, transactionLocation)){
 			//TODO: not sure if this should happen, after getting a YES vote commit needs to be written, maybe some other type of error other than abort?

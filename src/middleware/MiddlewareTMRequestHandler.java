@@ -34,7 +34,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		for(int i = 0 ; i <= this.transactionCounter ; i++ ){
 			if(logger.hasLog(LogType.STARTED, i)){
 				if(logger.hasLog(LogType.VOTESTARTED, i)){
-					if(logger.hasLog(LogType.COMMITED, i)){
+					if(logger.hasLog(LogType.COMMITTED, i)){
 						if(!logger.hasLog(LogType.DONE, i)){
 							this.reconnectServers(i);
 							//resend commits
@@ -204,15 +204,31 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 					// enlist the RMs if not already started
 					this.checkAndEnlistAll(transactionID);
 					// bounce the request out to all RMs
+					boolean needToResend = false;
 					for(ServerConnection connection : cm.getAllConnections()) {
 						rd = connection.sendRequest(request);
 						// check for abort condition
 						if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
 							this.abortTransaction(transactionID);
 							return rd;
+						}else if(rd.responseType == ResponseType.WAITINGFORVOTES){
+							needToResend = true;
+							System.out.println("Got a WAITINGFORVOTES resp");
+							RequestDescriptor req = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
+							req.transactionID = (int) rd.data;
+							if(logger.hasLog(LogType.COMMITTED, req.transactionID)){
+								req.canCommit = true;
+							}else if(logger.hasLog(LogType.ABORTED, req.transactionID)){
+								req.canCommit = false;
+							}
+							connection.sendRequest(req);
 						}
 					}
-					return rd;
+					if(needToResend){
+						return this.handleRequest(request);
+					}else{
+						return rd;
+					}
 				}
 			} else if (cm.modeIsConnected(mode)) {
 				this.checkAndEnlist(mode, transactionID);
@@ -220,6 +236,17 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
 					this.abortTransaction(transactionID);
 					return rd;
+				}else if(rd.responseType == ResponseType.WAITINGFORVOTES){
+					System.out.println("Got a WAITINGFORVOTES resp");
+					RequestDescriptor req = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
+					req.transactionID = (int) rd.data;
+					if(logger.hasLog(LogType.COMMITTED, req.transactionID)){
+						req.canCommit = true;
+					}else if(logger.hasLog(LogType.ABORTED, req.transactionID)){
+						req.canCommit = false;
+					}
+					cm.getConnection(mode).sendRequest(req);
+					return this.handleRequest(request);
 				}
 				return rd;
 			} else if (mode != null) {
@@ -256,7 +283,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		boolean voteResult = twoPhaseCommitVoteRequest(transactionID);
 		System.out.println("Vote result = " + voteResult);
 		if(voteResult){
-			logger.log(LogType.COMMITED, transactionID);
+			logger.log(LogType.COMMITTED, transactionID);
 		}else{
 			logger.log(LogType.ABORTED, transactionID);
 		}

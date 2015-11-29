@@ -2,6 +2,7 @@ package server;
 
 import shared.IRequestHandler;
 import shared.RequestDescriptor;
+import shared.RequestType;
 import shared.ResponseDescriptor;
 import shared.ResponseType;
 
@@ -16,6 +17,25 @@ public class TMRequestHandler implements IRequestHandler {
 		boolean boolResponse = false;
 		String stringResponse = null;
 		ResponseType responseType = null;
+		if(request.requestType == RequestType.TWOPHASECOMMITVOTERESP){
+			System.out.println("TWOPHASECOMMITVOTERESP recieved");
+			System.out.println(tm.getStartupVoteResponsesNeeded());
+			System.out.println(request.transactionID);
+			if(tm.getStartupVoteResponsesNeeded().contains(request.transactionID)){
+				tm.getStartupVoteResponsesNeeded().remove(request.transactionID);
+				System.out.println("Removed");
+				if(!tm.getStartupVoteResponsesNeeded().isEmpty()){
+					//Send request for an element
+					System.out.println("Requesting vote result, hung on startup");
+					return new ResponseDescriptor(ResponseType.WAITINGFORVOTES, (int) tm.getStartupVoteResponsesNeeded().toArray()[0]);
+				}
+			}
+		}
+		if(!tm.getStartupVoteResponsesNeeded().isEmpty()){
+			//Send request for an element
+			System.out.println("Requesting vote result, hung on startup");
+			return new ResponseDescriptor(ResponseType.WAITINGFORVOTES, (int) tm.getStartupVoteResponsesNeeded().toArray()[0]);
+		}
 		try{
 			switch (request.requestType) {
 			case NEWFLIGHT:

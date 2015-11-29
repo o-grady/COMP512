@@ -67,7 +67,7 @@ public class CommitLoggerImpl implements CommitLogger {
 	public int mostRecentlyCommittedTransaction(){
 		for( int i = logAsList.size() - 1 ; i >= 0 ; i--){
 			Tuple<LogType, Integer> item = logAsList.get(i);
-			if(item.x == LogType.COMMITED){
+			if(item.x == LogType.COMMITTED){
 				return item.y;
 			}
 		}
@@ -84,7 +84,7 @@ public class CommitLoggerImpl implements CommitLogger {
 			return -1;
 		}
 		for(int i = indexOfStart + 1 ; i < logAsList.size() ; i++){
-			if(logAsList.get(i).x == LogType.COMMITED){
+			if(logAsList.get(i).x == LogType.COMMITTED){
 				mostRecentCommitIndex = i;
 			}
 		}

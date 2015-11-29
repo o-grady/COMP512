@@ -33,5 +33,10 @@ public class ResponseDescriptor implements Serializable {
 		this.responseType = rt;
 		this.additionalMessage = message;
 	}
+	
+	public ResponseDescriptor(ResponseType rt, int response){
+		this.responseType = rt;
+		this.data = response; 
+	}
 
 }
