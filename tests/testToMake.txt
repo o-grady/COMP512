@@ -1,0 +1,39 @@
+• At the TM (coordinator): 
+    •Crash before sending vote request 
+        TM Log: START,ENLISTALL
+        TM Log After Recovery: START,ENLISTALL,ABORT,DONE 
+        RM Log: START 
+        RM Log After Recovery: START,ABORT
+    PASSED!
+    •Crash after sending vote request and before receiving any replies 
+    •Crash after receiving some replies but not all 
+    •Crash after receiving all replies but before deciding 
+        TM Log: START,ENLISTALL,VOTESTARTED
+        TM Log After Recovery: START,ENLISTALL,VOTESTARTED,ABORT,DONE 
+        RM Log: START,YESVOTESENT
+        RM Log After Recovery: START,YESVOTESENT,ABORT
+    PASSED!
+
+            or
+
+        TM Log: START,ENLISTALL,VOTESTARTED
+        TM Log After Recovery: START,ENLISTALL,VOTESTARTED,ABORT,DONE 
+        RM Log: START and START,YESVOTESENT
+        RM Log After Recovery: START,YESVOTESENT,ABORT and START,ABORT
+    PASSED!
+    •Crash after deciding but before sending decision 
+    •Crash after sending some but not all decisions 
+    •Crash after having sent all decisions 
+        TM Log: START,ENLISTALL,VOTESTARTED,COMMITED
+        TM Log After Recovery: START,ENLISTALL,VOTESTARTED,COMMITED,DONE 
+        RM Log: START,YESVOTESENT
+        RM Log After Recovery: START,YESVOTESENT,COMMIT
+    PASSED!
+    •Recovery of the coordinator (if you have decided to implement coordinator recovery) 
+• At the RMs (participants) 
+    •Crash after receive vote request but before sending answer 
+    •Which answer to send (commit/abort) 
+    •Crash after sending answer 
+    •Crash after receiving decision but before committing/aborting 
+    •Recovery of RM; especially if it voted yes for a transaction but has not yet committed it
+        Covered above

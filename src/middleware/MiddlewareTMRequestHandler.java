@@ -36,6 +36,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				if(logger.hasLog(LogType.VOTESTARTED, i)){
 					if(logger.hasLog(LogType.COMMITTED, i)){
 						if(!logger.hasLog(LogType.DONE, i)){
+							//START,VOTESTARTED,COMMITTED
 							this.reconnectServers(i);
 							//resend commits
 							System.out.println("Resending COMMIT vote");
@@ -43,6 +44,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 						}
 					}else if(logger.hasLog(LogType.ABORTED, i)){
 						if(!logger.hasLog(LogType.DONE, i)){
+							//START,VOTESTARTED,ABORTED
 							this.reconnectServers(i);
 							//resend abort
 							System.out.println("Resending ABORT vote");
@@ -50,6 +52,8 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 						}	
 					}else{
 						if(!logger.hasLog(LogType.DONE, i)){
+							//START,VOTESTARTED
+							logger.log(LogType.ABORTED, i);
 							this.reconnectServers(i);
 							System.out.println("Sending ABORT vote");
 							resend2PhaseResponse(i, false);
@@ -58,11 +62,18 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				}else{
 					if(logger.hasLog(LogType.ABORTED, i)){
 						if(!logger.hasLog(LogType.DONE, i)){
+							//START,ABORTED
 							this.reconnectServers(i);
 							//resend abort (non 2PC vote)
 							System.out.println("Sending abort (non 2PC vote)");
 							this.abortTransaction(i);
 						}	
+					}else{
+						//START
+						this.reconnectServers(i);
+						//resend abort (non 2PC vote)
+						System.out.println("Sending abort (non 2PC vote)");
+						this.abortTransaction(i);
 					}
 				}
 			}
@@ -166,7 +177,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            System.out.println("ABORT received");
 	            logger.log(LogType.ABORTED, transactionID);
 	            boolResponse = this.sendRequestToStarted(request);
-	            if(boolResponse == true){
+	            if(!logger.hasLog(LogType.DONE, transactionID)){
 	            	logger.log(LogType.DONE, transactionID);
 	            }
 	            activeTxns.remove(transactionID);
@@ -330,7 +341,6 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		boolean boolResponse = true;
         for (ServerMode sm : ServerMode.values()) {
             if (activeTxns.get(request.transactionID).hasStarted.get(sm)) {
-            	System.out.println("IN sendRequestToStarted, sm = " + sm);
             	ServerConnection sc = cm.getConnection(sm);
             	ResponseDescriptor rd = sc.sendRequest(request);
             	if (rd.responseType == ResponseType.BOOLEAN) {
