@@ -37,3 +37,10 @@
     •Crash after receiving decision but before committing/aborting 
     •Recovery of RM; especially if it voted yes for a transaction but has not yet committed it
         Covered above
+        
+• Implementing crashes at:
+    • TM before VOTESTARTED 
+    • TM after VOTESTARTED
+    • TM after decision, before DONE 
+    • RM in prepare method
+    • RM after sending YES 

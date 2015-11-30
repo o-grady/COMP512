@@ -290,7 +290,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 
 	private boolean twoPhaseCommit(int transactionID) throws Exception {
 		logger.log(LogType.VOTESTARTED, transactionID);
-		boolean boolResponse;
+		boolean boolResponse = false;
 		boolean voteResult = twoPhaseCommitVoteRequest(transactionID);
 		System.out.println("Vote result = " + voteResult);
 		if(voteResult){
@@ -301,10 +301,15 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		RequestDescriptor voteResp = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
 		voteResp.canCommit = voteResult;
 		voteResp.transactionID = transactionID;
-		boolResponse = sendRequestToStarted(voteResp);
+		try{
+			boolResponse = sendRequestToStarted(voteResp);
+		}catch(Exception e ){
+			//If commit / abort is not sent to all, it still should be able to write done because RM can recover itslef
+			//or by asking coordinator.
+		}
 		activeTxns.remove(transactionID);
 		logger.log(LogType.DONE, transactionID);
-		return boolResponse;
+		return voteResult;
 	}
 
 	private int startTransaction() {
@@ -337,19 +342,30 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		this.handleRequest(req);
 	}
 	
-	private boolean sendRequestToStarted(RequestDescriptor request) throws Exception {
+	private boolean sendRequestToStarted(RequestDescriptor request) throws Exception{
 		boolean boolResponse = true;
+		boolean anyExceptions = false;
         for (ServerMode sm : ServerMode.values()) {
             if (activeTxns.get(request.transactionID).hasStarted.get(sm)) {
             	ServerConnection sc = cm.getConnection(sm);
-            	ResponseDescriptor rd = sc.sendRequest(request);
-            	if (rd.responseType == ResponseType.BOOLEAN) {
-            		boolResponse = boolResponse && (boolean) rd.data; 
-            	} else if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
-            		boolResponse = false;
-            	}
-            	
+            	ResponseDescriptor rd = null;
+				try {
+					rd = sc.sendRequest(request);
+				} catch (Exception e) {
+					System.out.println("Problem sending to server " + sm);
+					anyExceptions = true;
+				}
+				if(rd != null){
+	            	if (rd.responseType == ResponseType.BOOLEAN) {
+	            		boolResponse = boolResponse && (boolean) rd.data; 
+	            	} else if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
+	            		boolResponse = false;
+	            	}
+				}
             }
+        }
+        if(anyExceptions){
+        	throw new Exception();
         }
 		return boolResponse;
 	}

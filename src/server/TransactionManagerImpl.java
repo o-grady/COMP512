@@ -1,6 +1,9 @@
 package server;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -11,12 +14,14 @@ import java.util.Set;
 import shared.CommitLogger;
 import shared.CommitLoggerImpl;
 import shared.LogType;
+import shared.CommitLoggerImpl.Tuple;
 import shared.LockManager.DeadlockException;
 import shared.LockManager.LockManager;
 
 public class TransactionManagerImpl implements TransactionManager {
 	private static final String DIR_SUFFIX = "-transactions";
 	private static final String COMMITED_STATE_PREFIX = "commitedTxn";
+	private static final String PREPARED_STATE_PREFIX = "preparedCommit";
 	private static final String OLD_STATE_PREFIX = "oldState_txn";
 	public static final int RESERVED_ID = 4567654;
 	
@@ -28,6 +33,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	private Set<Integer> transactionsIn2PC;
 	private Set<Integer> startupVoteResponsesNeeded;
 	private CommitLogger logger;
+	private Set<RMCrashLocations> whereToCrash;
 	public TransactionManagerImpl(ResourceManager rm, LockManager lm, int serverID){
 		this.rm = rm;
 		this.lm = lm;
@@ -35,8 +41,29 @@ public class TransactionManagerImpl implements TransactionManager {
 		this.transactionLocation = System.getProperty("user.dir") + File.separator + serverID + DIR_SUFFIX;
 		this.transactionsIn2PC = new HashSet<Integer>();
 		this.startupVoteResponsesNeeded = new HashSet<Integer>();
+		this.whereToCrash = new HashSet<RMCrashLocations>();
 		File txnFolder = Paths.get(this.transactionLocation).toFile();
-		
+		//Set up crashes
+		BufferedReader br = null;
+		try {
+			br = new BufferedReader(new FileReader(this.transactionLocation + File.separator + "crash.txt"));
+		} catch (FileNotFoundException e) {
+			System.out.println("No crash.txt found");
+		}
+		String whereToCrash = null;
+		if(br != null){
+			try {
+				if((whereToCrash = br.readLine()) != null){
+					if(RMCrashLocations.valueOf(whereToCrash) != null){
+						System.out.println("Added " + RMCrashLocations.valueOf(whereToCrash) + " to crash");
+						this.whereToCrash.add(RMCrashLocations.valueOf(whereToCrash));
+					}
+				}
+				br.close();	
+			} catch (IOException e) {
+				System.out.println("IOException when reading crash.txt");
+			}
+		}
 		//Make folder if it does not exist
 		txnFolder.mkdirs();
 		logger = new CommitLoggerImpl(this.transactionLocation + File.separator + "log.txt");
@@ -86,7 +113,9 @@ public class TransactionManagerImpl implements TransactionManager {
 				}else{
 					//Add abort log, dont need to actually abort as state is not altered,
 					//Shouldn't need to notify middleware, next time it asks about txn it will get an Aborted response. 
-					logger.log(LogType.ABORTED, i);
+					if(!logger.hasLog(LogType.ABORTED, i)){
+						logger.log(LogType.ABORTED, i);
+					}
 				}
 			}
 		}
@@ -97,6 +126,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 	private void exceptionIfTransactionIsBlockingOrInactive(int transactionID) throws TransactionBlockingException, TransactionNotActiveException {
 		if(this.transactionsIn2PC.contains(transactionID)){
+			crashIfRequested(RMCrashLocations.AFTERVOTE);
 			throw new TransactionBlockingException();
 		}
 		if(!this.activeTransactions.contains(transactionID)){
@@ -105,6 +135,11 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 
 	
+	public void crashIfRequested(RMCrashLocations crashAt) {
+		if(this.whereToCrash.contains(crashAt)){
+			System.exit(1);
+		}
+	}
 	@Override
 	public synchronized int enlist(int id) throws AbortedTransactionException {
 		if (activeTransactions.contains(id)) {
@@ -127,6 +162,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		//to send a boolean even if transaction is dead.
 		//TODO: need a log of 2PCStarted,txnid and 2PCVoteMade,txnid so that duplicate prepare, commit and aborts are ignored.
 		System.out.println("Starting prepare");
+		crashIfRequested(RMCrashLocations.PREPARE);
 		if(!activeTransactions.contains(transactionID)){
 			System.out.println("Transaction not active");
 			throw new TransactionNotActiveException();
@@ -148,23 +184,32 @@ public class TransactionManagerImpl implements TransactionManager {
 		}
 		activeTransactions.hangTransaction(transactionID);
 		this.transactionsIn2PC.add(transactionID);
+		//write new commit
+		if(!rm.writeDataToFile(PREPARED_STATE_PREFIX + transactionID, transactionLocation)){
+			//Abort if can't write to stable storage
+			abortTransaction(transactionID);
+			return false;
+		};
+		System.out.println("Wrote prepared state to disk");
 		logger.log(LogType.YESVOTESENT, transactionID);
 		return true; 
 	}
 	@Override
 	public synchronized boolean twoPhaseCommitTransaction(int transactionID) throws NotWaitingForVoteResultException{
+		crashIfRequested(RMCrashLocations.AFTERVOTE);
 		//do not commit if transaction is not waiting for vote result
 		if(!this.transactionsIn2PC.contains(transactionID)){
 			throw new NotWaitingForVoteResultException();
 		}
+		//Change name of prepared commit
+		Path preparedCommit = Paths.get(transactionLocation, PREPARED_STATE_PREFIX + transactionID);
+		try {
+			Files.move(preparedCommit, preparedCommit.resolveSibling(COMMITED_STATE_PREFIX + transactionID));
+			System.out.println("Renamed prepared commit to commit");
+		} catch (IOException e2) {
+			System.out.println("Problem renameing prepared state");
+		}
 		logger.log(LogType.COMMITTED, transactionID);
-		//write new commit
-		if(!rm.writeDataToFile(COMMITED_STATE_PREFIX + transactionID, transactionLocation)){
-			//TODO: not sure if this should happen, after getting a YES vote commit needs to be written, maybe some other type of error other than abort?
-			//abortTransaction(transactionID);
-			//throw new AbortedTransactionException();
-			System.out.println("ERROR: could not write commit state to stable storage");
-		};
 		
 		//Delete old committed transactions
 		File txnFolder = Paths.get(this.transactionLocation).toFile();
@@ -200,6 +245,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	
 	@Override
 	public synchronized boolean twoPhaseAbortTransaction(int transactionID) throws NotWaitingForVoteResultException{
+		crashIfRequested(RMCrashLocations.AFTERVOTE);
 		//do not abort if transaction is not waiting for vote result
 		if(!this.transactionsIn2PC.contains(transactionID)){
 			throw new NotWaitingForVoteResultException();
@@ -209,7 +255,6 @@ public class TransactionManagerImpl implements TransactionManager {
 		if(mostRecentCommit ==  -1){
 			rm.readOldStateFromFile(OLD_STATE_PREFIX + transactionID, transactionLocation);
 		}else{
-			// TODO: confirm with Grady
 			rm.readOldStateFromFile(COMMITED_STATE_PREFIX + mostRecentCommit, transactionLocation);
 		}
 		Path p = Paths.get(transactionLocation, OLD_STATE_PREFIX + transactionID);
@@ -220,6 +265,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			e.printStackTrace();
 		}
 		System.out.println("Calling UnlockAll on " + transactionID);
+		activeTransactions.unhangTransaction(transactionID);
+		transactionsIn2PC.remove(transactionID);
 		activeTransactions.remove(transactionID);
 		lm.UnlockAll(transactionID);
 		return true;
