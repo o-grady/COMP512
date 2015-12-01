@@ -135,7 +135,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	}
 
 	
-	public void crashIfRequested(RMCrashLocations crashAt) {
+	private void crashIfRequested(RMCrashLocations crashAt) {
 		if(this.whereToCrash.contains(crashAt)){
 			System.exit(1);
 		}

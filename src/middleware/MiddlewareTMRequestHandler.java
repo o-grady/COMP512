@@ -1,8 +1,16 @@
 package middleware;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import server.AbortedTransactionException;
+import server.RMCrashLocations;
 import server.TMRequestHandler;
 import server.TransactionBlockingException;
 import server.TransactionManager;
@@ -23,11 +31,32 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	private MiddlewareActiveTransactionThread activeTxns; 
 	private int transactionCounter;
 	private CommitLogger logger;
-	
+	private Set<MWCrashLocations> whereToCrash = new HashSet<MWCrashLocations>();
 	public MiddlewareTMRequestHandler(ConnectionManager cm) {
 		this.cm = cm;
 		this.activeTxns = new MiddlewareActiveTransactionThread();
 		this.activeTxns.start();
+		//Set up intended crashing
+		BufferedReader br = null;
+		try {
+			br = new BufferedReader(new FileReader("crash.txt"));
+		} catch (FileNotFoundException e) {
+			System.out.println("No crash.txt found");
+		}
+		String whereToCrash = null;
+		if(br != null){
+			try {
+				if((whereToCrash = br.readLine()) != null){
+					if(MWCrashLocations.valueOf(whereToCrash) != null){
+						System.out.println("Added " + MWCrashLocations.valueOf(whereToCrash) + " to crash");
+						this.whereToCrash.add(MWCrashLocations.valueOf(whereToCrash));
+					}
+				}
+				br.close();	
+			} catch (IOException e) {
+				System.out.println("IOException when reading crash.txt");
+			}
+		}
 		this.logger = new CommitLoggerImpl("middlewareLog.txt");
 		this.transactionCounter = this.logger.largestTransactionInLog();
 		System.out.println("Transaction Counter Initialized to " + this.transactionCounter);
@@ -289,8 +318,9 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	}
 
 	private boolean twoPhaseCommit(int transactionID) throws Exception {
+		crashIfRequested(MWCrashLocations.BEFOREVOTESTARTED);
 		logger.log(LogType.VOTESTARTED, transactionID);
-		boolean boolResponse = false;
+		crashIfRequested(MWCrashLocations.AFTERVOTESTARTED);
 		boolean voteResult = twoPhaseCommitVoteRequest(transactionID);
 		System.out.println("Vote result = " + voteResult);
 		if(voteResult){
@@ -302,11 +332,12 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		voteResp.canCommit = voteResult;
 		voteResp.transactionID = transactionID;
 		try{
-			boolResponse = sendRequestToStarted(voteResp);
+			sendRequestToStarted(voteResp);
 		}catch(Exception e ){
 			//If commit / abort is not sent to all, it still should be able to write done because RM can recover itslef
 			//or by asking coordinator.
 		}
+		crashIfRequested(MWCrashLocations.BEFOREDONE);
 		activeTxns.remove(transactionID);
 		logger.log(LogType.DONE, transactionID);
 		return voteResult;
@@ -575,5 +606,10 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		}
 		//No one voted no, so return true
 		return true;
+	}
+	private void crashIfRequested(MWCrashLocations crashAt) {
+		if(this.whereToCrash.contains(crashAt)){
+			System.exit(1);
+		}
 	}
 }
