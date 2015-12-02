@@ -8,7 +8,7 @@ import middleware.ServerMode;
 public class RequestDescriptor implements Serializable {
 
 	private static final long serialVersionUID = -1943991785815079042L;
-	public final RequestType requestType;
+	public RequestType requestType;
 	
     public int transactionID;
     public int flightNumber;

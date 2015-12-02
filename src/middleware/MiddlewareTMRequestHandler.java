@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Calendar;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -236,6 +237,14 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				if (request.requestType == RequestType.QUERYCUSTOMER){
 					return this.queryCustomer(request);
 				} else {
+					if(request.requestType == RequestType.NEWCUSTOMER){
+				        int customerId = Integer.parseInt(String.valueOf(request.transactionID) +
+				                String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
+				                String.valueOf(Math.round(Math.random() * 100 + 1)));
+				        request.requestType = RequestType.NEWCUSTOMERID;
+				        request.customerNumber = customerId;
+				        
+					}
 					ResponseDescriptor rd = null;
 					// enlist the RMs if not already started
 					this.checkAndEnlistAll(transactionID);
@@ -453,6 +462,9 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			String data = (String) rd.data;
 			if (rd.responseType == ResponseType.ERROR || rd.responseType == ResponseType.ABORT) {
 				throw new Exception("Error. Data: " + (String) data + ", Message: " + rd.additionalMessage);
+			}else if(rd.responseType == ResponseType.WAITINGFORVOTES){
+				resendVote((int) rd.data, connection);
+				return this.handleRequest(request);
 			}
 			String[] lines = data.split("\n");
 			for (int i = 1 ; i < lines.length - 1 ; i++){
