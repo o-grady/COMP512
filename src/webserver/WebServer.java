@@ -27,8 +27,8 @@ public class WebServer {
 	private static Scanner scanner;
 	private static ServerConnection middlewareConnection;
     public static void main(String[] args) {
-    	//System.out.println(System.getProperty("user.dir"));
-    	//System.out.println(System.getProperty("os.name"));
+    	System.out.println(System.getProperty("user.dir"));
+    	System.out.println(System.getProperty("os.name"));
     	scanner = new Scanner(System.in);
         HttpServer server = null;
 		try {
@@ -65,7 +65,7 @@ public class WebServer {
     static class StaticFileHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange t) throws IOException {
-        	//System.out.println(t.getRequestURI().toString());
+        	System.out.println(t.getRequestURI().toString());
         	String dirPath = System.getProperty("user.dir")+File.separator+"src"+File.separator+"webserver"+File.separator+"public"+File.separator;
         	String item = t.getRequestURI().toString().substring(1);
         	String pathStr;
@@ -111,7 +111,7 @@ public class WebServer {
 			try {
 				response = middlewareConnection.sendRequest(req);
 				if(response.data != null) {
-					message = "Data: " + (String) response.data;
+					message = "Data: " +  response.data.toString();
 				}
 				if(response.additionalMessage != null) {
 					message += ", Message: " + response.additionalMessage;
@@ -158,6 +158,7 @@ public class WebServer {
     		if(parameterMap.containsKey(fields[i].getName())){
     			try {
     				String paramValueStr = parameterMap.get(fields[i].getName());
+    				System.out.println(fields[i].toString());
     				switch(fields[i].getType().toString()){
     					case "int":
     						int intParamValue = Integer.parseInt(paramValueStr);

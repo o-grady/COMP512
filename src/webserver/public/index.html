@@ -11,6 +11,9 @@
 	<form id="requestForm" action="/request" method="post" style="display:block">
 		<div>
 			<select name="method" id="method"> 
+				<option value="starttxn">starttxn</option>
+				<option value="commit">commit</option>
+				<option value="abort">abort</option>
 				<option value="newflight">newflight</option>
 				<option value="newcar">newcar</option>
 				<option value="newroom">newroom</option>
@@ -34,9 +37,9 @@
 			</select>
 		</div>
 		<div id="parameters">
-			<div class="formDiv" id="id">
-				<input type="number" name="id" value="id">
-				ID:
+			<div class="formDiv" id="transactionID">
+				<input type="number" name="transactionID" value="transactionID">
+				transactionID:
 			</div>
 			<div class="formDiv" id="flightNumber">
 				<input type="number" name="flightNumber"> 

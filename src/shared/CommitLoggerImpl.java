@@ -19,18 +19,17 @@ public class CommitLoggerImpl implements CommitLogger {
 			while( (logEntry = br.readLine()) != null){
 				String[] splitLogEntry = logEntry.split(",");
 				logAsList.add(new Tuple<LogType, Integer>(LogType.valueOf(splitLogEntry[0]), Integer.parseInt(splitLogEntry[1])));
-				System.out.println("Adding tuple " + LogType.valueOf(splitLogEntry[0]) + ", " + Integer.parseInt(splitLogEntry[1]));
 			}
 			br.close();
 		} catch (FileNotFoundException e1) {
 			System.out.println("CommitLoggerImpl: can't read old commits, file not found");
 		} catch (IOException e) {
-			System.out.println("CommitLoggerImple: Problem readign from file");
+			System.out.println("CommitLoggerImpl: Problem reading from file");
 		}
 		try {
 			this.pw = new PrintWriter(new BufferedWriter(new FileWriter(logLocation, true)));
 		} catch (IOException e) {
-			System.out.println("Cant open PrintWriter");
+			System.out.println("CommitLoggerImpl: Cant open PrintWriter");
 			this.pw = null;
 		}
 	}
@@ -39,7 +38,6 @@ public class CommitLoggerImpl implements CommitLogger {
 		pw.println(logType.toString() + "," + transactionID);
 		pw.flush();
 		logAsList.add(new Tuple<LogType, Integer>(logType, transactionID));
-		System.out.println("Adding tuple " + logType + ", " + transactionID);
 	}
 	@Override
 	public boolean hasLog(LogType logType, int transactionID){

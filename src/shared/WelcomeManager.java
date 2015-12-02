@@ -38,7 +38,6 @@ public class WelcomeManager extends Thread {
         try {
         	welcomeSocket = new ServerSocket(port);
 	        while(true){
-		    	//System.out.println("Listening for connections on port " + port);
 		        Socket connectionSocket = welcomeSocket.accept();
 		        //After connection is accepted start a new thread to handle
 		        (new ClientConnectionThread(connectionSocket, requestHandler)).start();

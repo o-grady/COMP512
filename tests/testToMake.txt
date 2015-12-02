@@ -39,8 +39,8 @@
         Covered above
         
 • Implementing crashes at:
-    • TM before VOTESTARTED 
+    • TM before VOTESTARTED - recovery works 
     • TM after VOTESTARTED
     • TM after decision, before DONE 
-    • RM in prepare method
-    • RM after sending YES 
+    • RM in prepare method - recovery works
+    • RM after sending YES - recovery works

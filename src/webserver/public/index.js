@@ -49,65 +49,73 @@ $(function(){
 	    function getParameterList(method){
 	    	var parameterList = [];
 	    	switch(method){
+		    	case "starttxn":
+		    		break;
+		    	case "commit":
+		    		parameterList.push("transactionID");
+		    		break;
+		    	case "abort":
+		    		parameterList.push("transactionID");
+		    		break;
 		    	case "newflight":
-		    		parameterList.push("id", "flightNumber", "numSeats", "price");
+		    		parameterList.push("transactionID", "flightNumber", "numSeats", "price");
 		    		break;
 		    	case "newcar":
-		    		parameterList.push("id", "location", "numCars", "price");
+		    		parameterList.push("transactionID", "location", "numCars", "price");
 		    		break;
 		    	case "newroom":
-		    		parameterList.push("id", "location", "numRooms", "price");
+		    		parameterList.push("transactionID", "location", "numRooms", "price");
 		    		break;
 		    	case "newcustomer":
-		    		parameterList.push("id");
+		    		parameterList.push("transactionID");
 		    		break;
 		    	case "newcustomerid":
-		    		parameterList.push("id", "customerNumber");
+		    		parameterList.push("transactionID", "customerNumber");
 		    		break;
 		    	case "deleteflight":
-		    		parameterList.push("id", "flightNumber");
+		    		parameterList.push("transactionID", "flightNumber");
 		    		break;
 		    	case "deletecar":
-		    		parameterList.push("id", "location");
+		    		parameterList.push("transactionID", "location");
 		    		break;
 		    	case "deleteroom":
-		    		parameterList.push("id", "location");
+		    		parameterList.push("transactionID", "location");
 		    		break;
 		    	case "deletecustomer":
-		    		parameterList.push("id", "customerNumber");
+		    		parameterList.push("transactionID", "customerNumber");
 		    		break;
 		    	case "queryflight":
-		    		parameterList.push("id", "flightNumber");
+		    		parameterList.push("transactionID", "flightNumber");
 		    		break;
 		    	case "querycar":
-		    		parameterList.push("id", "location");
+		    		parameterList.push("transactionID", "location");
 		    		break;
 		    	case "queryroom":
-		    		parameterList.push("id", "location");
+		    		parameterList.push("transactionID", "location");
 		    		break;
 		    	case "querycustomer":
-		    		parameterList.push("id", "customerNumber");
+		    		parameterList.push("transactionID", "customerNumber");
 		    		break;
 		    	case "queryflightprice":
-		    		parameterList.push("id", "flightNumber");
+		    		parameterList.push("transactionID", "flightNumber");
 		    		break;
 		    	case "querycarprice":
-		    		parameterList.push("id", "location");
+		    		parameterList.push("transactionID", "location");
 		    		break;
 		    	case "queryroomprice":
-		    		parameterList.push("id", "location");
+		    		parameterList.push("transactionID", "location");
 		    		break;
 		    	case "reserveflight":
-		    		parameterList.push("id", "customerNumber", "flightNumber");
+		    		parameterList.push("transactionID", "customerNumber", "flightNumber");
 		    		break;
 		    	case "reservecar":
-		    		parameterList.push("id", "customerNumber", "location");
+		    		parameterList.push("transactionID", "customerNumber", "location");
 		    		break;
 		    	case "reserveroom":
-		    		parameterList.push("id", "customerNumber", "location");
+		    		parameterList.push("transactionID", "customerNumber", "location");
 		    		break;
 		    	case "itinerary":
-		    		parameterList.push("id", "customerNumber", "flightNumbers", "location", "car", "room");
+		    		parameterList.push("transactionID", "customerNumber", "flightNumbers", "location", "car", "room");
 
 		    		break;
 		    }

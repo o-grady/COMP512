@@ -26,6 +26,8 @@ import shared.ResponseType;
 import shared.ServerConnection;
 
 public class MiddlewareTMRequestHandler implements IRequestHandler {
+	private static final String LOG_NAME = "middlewareLog.txt";
+	private static final String CRASH_FILE_NAME = "crash.txt";
 	private static final int TWO_PHASE_COMMIT_TIMEOUT = 10000;
 	private ConnectionManager cm;
 	private MiddlewareActiveTransactionThread activeTxns; 
@@ -39,27 +41,26 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		//Set up intended crashing
 		BufferedReader br = null;
 		try {
-			br = new BufferedReader(new FileReader("crash.txt"));
+			br = new BufferedReader(new FileReader(CRASH_FILE_NAME));
 		} catch (FileNotFoundException e) {
-			System.out.println("No crash.txt found");
+			System.out.println("MiddlewareTMRequestHandler: No crash.txt found");
 		}
 		String whereToCrash = null;
 		if(br != null){
 			try {
 				if((whereToCrash = br.readLine()) != null){
 					if(MWCrashLocations.valueOf(whereToCrash) != null){
-						System.out.println("Added " + MWCrashLocations.valueOf(whereToCrash) + " to crash");
 						this.whereToCrash.add(MWCrashLocations.valueOf(whereToCrash));
 					}
 				}
 				br.close();	
 			} catch (IOException e) {
-				System.out.println("IOException when reading crash.txt");
+				System.out.println("MiddlewareTMRequestHandler: IOException when reading crash.txt");
 			}
 		}
-		this.logger = new CommitLoggerImpl("middlewareLog.txt");
+		this.logger = new CommitLoggerImpl(LOG_NAME);
 		this.transactionCounter = this.logger.largestTransactionInLog();
-		System.out.println("Transaction Counter Initialized to " + this.transactionCounter);
+		System.out.println("MiddlewareTMRequestHandler: Transaction Counter initialized to " + this.transactionCounter);
 		for(int i = 0 ; i <= this.transactionCounter ; i++ ){
 			if(logger.hasLog(LogType.STARTED, i)){
 				if(logger.hasLog(LogType.VOTESTARTED, i)){
@@ -68,7 +69,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 							//START,VOTESTARTED,COMMITTED
 							this.reconnectServers(i);
 							//resend commits
-							System.out.println("Resending COMMIT vote");
+							System.out.println("MiddlewareTMRequestHandler: Resending COMMIT vote");
 							resend2PhaseResponse(i, true);
 						}
 					}else if(logger.hasLog(LogType.ABORTED, i)){
@@ -76,7 +77,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 							//START,VOTESTARTED,ABORTED
 							this.reconnectServers(i);
 							//resend abort
-							System.out.println("Resending ABORT vote");
+							System.out.println("MiddlewareTMRequestHandler: Resending ABORT vote");
 							resend2PhaseResponse(i, false);
 						}	
 					}else{
@@ -84,7 +85,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 							//START,VOTESTARTED
 							logger.log(LogType.ABORTED, i);
 							this.reconnectServers(i);
-							System.out.println("Sending ABORT vote");
+							System.out.println("MiddlewareTMRequestHandler: Sending ABORT vote");
 							resend2PhaseResponse(i, false);
 						}
 					}
@@ -94,14 +95,14 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 							//START,ABORTED
 							this.reconnectServers(i);
 							//resend abort (non 2PC vote)
-							System.out.println("Sending abort (non 2PC vote)");
+							System.out.println("MiddlewareTMRequestHandler: Sending abort (non 2PC vote)");
 							this.abortTransaction(i);
 						}	
 					}else{
 						//START
 						this.reconnectServers(i);
 						//resend abort (non 2PC vote)
-						System.out.println("Sending abort (non 2PC vote)");
+						System.out.println("MiddlewareTMRequestHandler: Sending abort (non 2PC vote)");
 						this.abortTransaction(i);
 					}
 				}
@@ -116,12 +117,11 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		try {
 			boolResponse = sendRequestToStarted(voteResp);
 		} catch (Exception e) {
-			System.out.println("Problem resending 2PC vote");
+			System.out.println("MiddlewareTMRequestHandler: Problem resending 2PC vote");
 			e.printStackTrace();
 		}
 		activeTxns.remove(transactionID);
 		logger.log(LogType.DONE, transactionID);
-		System.out.println("resend2PhaseResponse: returning " + boolResponse);
 		return boolResponse;	
 	}
 	private void reconnectServers(int transactionID) {
@@ -169,7 +169,6 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			case QUERYCARPRICE:
 			case RESERVECAR:
 				mode = ServerMode.CAR;
-				System.out.println("mode = ServerMode.CAR");
 				break;
 			case DELETEFLIGHT:
 			case NEWFLIGHT:
@@ -177,7 +176,6 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			case QUERYFLIGHTPRICE:
 			case RESERVEFLIGHT:
 				mode = ServerMode.FLIGHT;
-				System.out.println("mode = ServerMode.FLIGHT");
 				break;
 			case DELETEROOM:
 			case NEWROOM:
@@ -185,25 +183,23 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			case QUERYROOMPRICE:
 			case RESERVEROOM:
 				mode = ServerMode.ROOM;
-				System.out.println("mode = ServerMode.ROOM");
 				break;
 			case DELETECUSTOMER:
 			case NEWCUSTOMER:
 			case NEWCUSTOMERID:
 			case QUERYCUSTOMER:
 				mode = ServerMode.CUSTOMER;
-				System.out.println("mode = ServerMode.CUSTOMER");
 				break;
 			case STARTTXN:
-	            System.out.println("STARTTXN received");
+	            System.out.println("MiddlewareTMRequestHandler: STARTTXN received");
 	            intResponse = this.startTransaction();
 	            break;
 		    case COMMIT:
-	            System.out.println("COMMIT received");
+	            System.out.println("MiddlewareTMRequestHandler: COMMIT received");
 	            boolResponse = twoPhaseCommit(transactionID);
 	            break;
 		    case ABORT:
-	            System.out.println("ABORT received");
+	            System.out.println("MiddlewareTMRequestHandler: ABORT received");
 	            logger.log(LogType.ABORTED, transactionID);
 	            boolResponse = this.sendRequestToStarted(request);
 	            if(!logger.hasLog(LogType.DONE, transactionID)){
@@ -212,7 +208,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 	            activeTxns.remove(transactionID);
 	            break;
 		    case SHUTDOWN:
-	            System.out.println("SHUTDOWN received");
+	            System.out.println("MiddlewareTMRequestHandler: SHUTDOWN received");
 				for( ServerConnection connection : cm.getAllConnections()){
 					try {
 						connection.sendRequest(request);
@@ -253,15 +249,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 							return rd;
 						}else if(rd.responseType == ResponseType.WAITINGFORVOTES){
 							needToResend = true;
-							System.out.println("Got a WAITINGFORVOTES resp");
-							RequestDescriptor req = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
-							req.transactionID = (int) rd.data;
-							if(logger.hasLog(LogType.COMMITTED, req.transactionID)){
-								req.canCommit = true;
-							}else if(logger.hasLog(LogType.ABORTED, req.transactionID)){
-								req.canCommit = false;
-							}
-							connection.sendRequest(req);
+							resendVote((int) rd.data, connection);
 						}
 					}
 					if(needToResend){
@@ -277,15 +265,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 					this.abortTransaction(transactionID);
 					return rd;
 				}else if(rd.responseType == ResponseType.WAITINGFORVOTES){
-					System.out.println("Got a WAITINGFORVOTES resp");
-					RequestDescriptor req = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
-					req.transactionID = (int) rd.data;
-					if(logger.hasLog(LogType.COMMITTED, req.transactionID)){
-						req.canCommit = true;
-					}else if(logger.hasLog(LogType.ABORTED, req.transactionID)){
-						req.canCommit = false;
-					}
-					cm.getConnection(mode).sendRequest(req);
+					resendVote((int) rd.data, cm.getConnection(mode));
 					return this.handleRequest(request);
 				}
 				return rd;
@@ -316,13 +296,22 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			return new ResponseDescriptor(boolResponse);
 		}
 	}
-
+	private void resendVote(int data, ServerConnection serverConnection) throws Exception {
+		System.out.println("MiddlewareTMRequestHandler: Got a WAITINGFORVOTES resp");
+		RequestDescriptor req = new RequestDescriptor(RequestType.TWOPHASECOMMITVOTERESP);
+		req.transactionID = data;
+		if(logger.hasLog(LogType.COMMITTED, req.transactionID)){
+			req.canCommit = true;
+		}else if(logger.hasLog(LogType.ABORTED, req.transactionID)){
+			req.canCommit = false;
+		}
+		serverConnection.sendRequest(req);
+	}
 	private boolean twoPhaseCommit(int transactionID) throws Exception {
 		crashIfRequested(MWCrashLocations.BEFOREVOTESTARTED);
 		logger.log(LogType.VOTESTARTED, transactionID);
 		crashIfRequested(MWCrashLocations.AFTERVOTESTARTED);
 		boolean voteResult = twoPhaseCommitVoteRequest(transactionID);
-		System.out.println("Vote result = " + voteResult);
 		if(voteResult){
 			logger.log(LogType.COMMITTED, transactionID);
 		}else{
@@ -354,7 +343,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		if(request.serverToCrash == null){
 			throw new Exception();
 		}
-		System.out.println("CRASH received");
+		System.out.println("MiddlewareTMRequestHandler: CRASH received");
 		ServerMode toCrash = request.serverToCrash;
 		RequestDescriptor selfDestructMessage = new RequestDescriptor(RequestType.SELFDESTRUCT);
 		//using customer for middleware here
@@ -383,7 +372,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				try {
 					rd = sc.sendRequest(request);
 				} catch (Exception e) {
-					System.out.println("Problem sending to server " + sm);
+					System.out.println("MiddlewareTMRequestHandler: Problem sending to server " + sm);
 					anyExceptions = true;
 				}
 				if(rd != null){
@@ -510,7 +499,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				return res;
 			}
 			if (rd.responseType == ResponseType.ERROR || rd.responseType == ResponseType.ABORT) {
-				System.out.println("Aborting Transaction " + transactionID);
+				System.out.println("MiddlewareTMRequestHandler: Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 				req.transactionID = transactionID;
 				this.handleRequest(req);
@@ -534,7 +523,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				return res;
 			}
 			if (rd.responseType == ResponseType.ERROR || rd.responseType == ResponseType.ABORT) {
-				System.out.println("Aborting Transaction " + transactionID);
+				System.out.println("MiddlewareTMRequestHandler: Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 				req.transactionID = transactionID;
 				this.handleRequest(req);
@@ -557,7 +546,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				return res;
 			}
 			if (rd.responseType == ResponseType.ERROR || rd.responseType == ResponseType.ABORT) {
-				System.out.println("Aborting Transaction " + transactionID);
+				System.out.println("MiddlewareTMRequestHandler: Aborting Transaction " + transactionID);
 				RequestDescriptor req = new RequestDescriptor(RequestType.ABORT);
 				req.transactionID = transactionID;
 				this.handleRequest(req);
@@ -571,7 +560,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		return res;
 	}
 	private boolean twoPhaseCommitVoteRequest(int transactionID){
-		System.out.println("Starting 2PC voting");
+		System.out.println("MiddlewareTMRequestHandler: Starting 2PC voting");
 		Map<ServerMode, Boolean> serversUsed = this.activeTxns.get(transactionID).hasStarted;
 		RequestDescriptor request = null;
 		for( ServerMode mode : ServerMode.values() ){
@@ -579,12 +568,11 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 				request = new RequestDescriptor(RequestType.PREPARE);
 				request.transactionID = transactionID;
 				try {
-					System.out.println("Sending vote request to " + mode.toString());
+					System.out.println("MiddlewareTMRequestHandler: Sending vote request to " + mode.toString());
 					boolean dataReceived = false;
 					boolean vote = false;
 					try{
 						ResponseDescriptor rd = cm.getConnection(mode).sendRequestWithTimeOut(request, TWO_PHASE_COMMIT_TIMEOUT);
-						System.out.println("Data Recieved: " + rd.data.toString());
 						vote = (boolean) rd.data; 
 						dataReceived = true;
 					}catch(java.net.SocketException e){}
@@ -597,7 +585,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 						return false;
 					}
 				} catch (Exception e) {
-					System.out.println("Error in twoPhaseCommitVoteRequest");
+					System.out.println("MiddlewareTMRequestHandler: Error in twoPhaseCommitVoteRequest");
 					e.printStackTrace();
 					//dont think this should happen, abort just in case?
 					return false;

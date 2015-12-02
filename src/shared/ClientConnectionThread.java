@@ -20,14 +20,12 @@ public class ClientConnectionThread extends Thread{
 	
 	public void run() {
 		try{
-	        //System.out.println("Connection accepted!");
 	        inFromClient = new ObjectInputStream(socket.getInputStream());
 	        outToClient = new ObjectOutputStream(socket.getOutputStream());
 	        
 	        Object read;
 	        
 	        while((read = inFromClient.readObject()) != null){
-	        	//System.out.println("Waiting for input");
 	        	
 	        	RequestDescriptor request;
 	        	ResponseDescriptor response;

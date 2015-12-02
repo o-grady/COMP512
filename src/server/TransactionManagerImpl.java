@@ -48,20 +48,19 @@ public class TransactionManagerImpl implements TransactionManager {
 		try {
 			br = new BufferedReader(new FileReader(this.transactionLocation + File.separator + "crash.txt"));
 		} catch (FileNotFoundException e) {
-			System.out.println("No crash.txt found");
+			System.out.println("TransactionManagerImpl: No crash.txt found");
 		}
 		String whereToCrash = null;
 		if(br != null){
 			try {
 				if((whereToCrash = br.readLine()) != null){
 					if(RMCrashLocations.valueOf(whereToCrash) != null){
-						System.out.println("Added " + RMCrashLocations.valueOf(whereToCrash) + " to crash");
 						this.whereToCrash.add(RMCrashLocations.valueOf(whereToCrash));
 					}
 				}
 				br.close();	
 			} catch (IOException e) {
-				System.out.println("IOException when reading crash.txt");
+				System.out.println("TransactionManagerImpl: IOException when reading crash.txt");
 			}
 		}
 		//Make folder if it does not exist
@@ -69,7 +68,7 @@ public class TransactionManagerImpl implements TransactionManager {
 		logger = new CommitLoggerImpl(this.transactionLocation + File.separator + "log.txt");
 		int mostRecentCommit = logger.mostRecentlyCommittedTransaction();
 		if (mostRecentCommit > 0) {
-			System.out.println("Setting contents to commit number " + mostRecentCommit);
+			System.out.println("TransactionManagerImpl: Setting data to commit number " + mostRecentCommit);
 			rm.readOldStateFromFile(COMMITED_STATE_PREFIX + mostRecentCommit, transactionLocation);
 		}
 		
@@ -85,7 +84,7 @@ public class TransactionManagerImpl implements TransactionManager {
 						try {
 							Files.deleteIfExists(filesInTxnFolder[i].toPath());
 						} catch (IOException e1) {
-							System.out.println("WARN: Could not delete " + filesInTxnFolder[i].toPath());
+							System.out.println("TransactionManagerImpl: WARN: Could not delete " + filesInTxnFolder[i].toPath());
 						}
 					}
 				}
@@ -93,7 +92,7 @@ public class TransactionManagerImpl implements TransactionManager {
 					try {
 						Files.deleteIfExists(filesInTxnFolder[i].toPath());
 					} catch (IOException e1) {
-						System.out.println("WARN: Could not delete " + filesInTxnFolder[i].toPath());
+						System.out.println("TransactionManagerImpl: WARN: Could not delete " + filesInTxnFolder[i].toPath());
 					}
 				}
 			}
@@ -104,7 +103,6 @@ public class TransactionManagerImpl implements TransactionManager {
 			if(logger.hasLog(LogType.STARTED, i)){
 				if(logger.hasLog(LogType.YESVOTESENT, i)){
 					if(!logger.hasLog(LogType.COMMITTED, i) && !logger.hasLog(LogType.ABORTED, i)){
-						System.out.println("Transaction " + i + " added to startupVoteResponsesNeeded");
 						activeTransactions.add(i);
 						activeTransactions.hangTransaction(i);
 						transactionsIn2PC.add(i);
@@ -161,10 +159,8 @@ public class TransactionManagerImpl implements TransactionManager {
 		//Not sure that these exceptions should be thrown, because TMRequestHandler will catch and send String resp, want
 		//to send a boolean even if transaction is dead.
 		//TODO: need a log of 2PCStarted,txnid and 2PCVoteMade,txnid so that duplicate prepare, commit and aborts are ignored.
-		System.out.println("Starting prepare");
 		crashIfRequested(RMCrashLocations.PREPARE);
 		if(!activeTransactions.contains(transactionID)){
-			System.out.println("Transaction not active");
 			throw new TransactionNotActiveException();
 		}
 		if(this.transactionsIn2PC.contains(transactionID)){
@@ -173,10 +169,8 @@ public class TransactionManagerImpl implements TransactionManager {
 		}
 		activeTransactions.signalTransaction(transactionID);
 		if (lm.isTransactionWaiting(transactionID)){
-			System.out.println("Transaction waiting");
 			try {
 				this.abortTransaction(transactionID);
-				System.out.println("Aborted Transaction");
 			} catch (TransactionNotActiveException e) {
 				//TODO: don't think anything needs to be done here
 			}
@@ -190,7 +184,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			abortTransaction(transactionID);
 			return false;
 		};
-		System.out.println("Wrote prepared state to disk");
+		System.out.println("TransactionManagerImpl: Wrote prepared state to disk");
 		logger.log(LogType.YESVOTESENT, transactionID);
 		return true; 
 	}
@@ -205,12 +199,11 @@ public class TransactionManagerImpl implements TransactionManager {
 		Path preparedCommit = Paths.get(transactionLocation, PREPARED_STATE_PREFIX + transactionID);
 		try {
 			Files.move(preparedCommit, preparedCommit.resolveSibling(COMMITED_STATE_PREFIX + transactionID));
-			System.out.println("Renamed prepared commit to commit");
 		} catch (IOException e2) {
-			System.out.println("Problem renameing prepared state");
+			System.out.println("TransactionManagerImpl: Problem renaming prepared state");
 		}
 		logger.log(LogType.COMMITTED, transactionID);
-		
+		System.out.println("TransactionManagerImpl: Committed transaction " + transactionID);
 		//Delete old committed transactions
 		File txnFolder = Paths.get(this.transactionLocation).toFile();
 		File[] filesInTxnFolder =  txnFolder.listFiles();
@@ -222,7 +215,7 @@ public class TransactionManagerImpl implements TransactionManager {
 					try {
 						Files.deleteIfExists(filesInTxnFolder[i].toPath());
 					} catch (IOException e1) {
-						System.out.println("WARN: Could not delete " + filesInTxnFolder[i].toPath());
+						System.out.println("TransactionManagerImpl: WARN: Could not delete " + filesInTxnFolder[i].toPath());
 					}
 				}
 			}
@@ -235,7 +228,6 @@ public class TransactionManagerImpl implements TransactionManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Calling UnlockAll on " + transactionID);
 		activeTransactions.unhangTransaction(transactionID);
 		transactionsIn2PC.remove(transactionID);
 		activeTransactions.remove(transactionID);
@@ -251,6 +243,7 @@ public class TransactionManagerImpl implements TransactionManager {
 			throw new NotWaitingForVoteResultException();
 		}
 		logger.log(LogType.ABORTED, transactionID);
+		System.out.println("TransactionManagerImpl: Aborted transaction " + transactionID);
 		int mostRecentCommit = logger.mostRecentCommitSinceTransactionStart(transactionID);
 		if(mostRecentCommit ==  -1){
 			rm.readOldStateFromFile(OLD_STATE_PREFIX + transactionID, transactionLocation);
@@ -264,7 +257,6 @@ public class TransactionManagerImpl implements TransactionManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Calling UnlockAll on " + transactionID);
 		activeTransactions.unhangTransaction(transactionID);
 		transactionsIn2PC.remove(transactionID);
 		activeTransactions.remove(transactionID);
@@ -275,6 +267,7 @@ public class TransactionManagerImpl implements TransactionManager {
 	public synchronized boolean abortTransaction(int transactionID) throws TransactionNotActiveException, TransactionBlockingException {
 		exceptionIfTransactionIsBlockingOrInactive(transactionID);
 		logger.log(LogType.ABORTED, transactionID);
+		System.out.println("TransactionManagerImpl: Aborted transaction " + transactionID);
 		int mostRecentCommit = logger.mostRecentCommitSinceTransactionStart(transactionID);
 		if(mostRecentCommit ==  -1){
 			rm.readOldStateFromFile(OLD_STATE_PREFIX + transactionID, transactionLocation);
@@ -289,7 +282,6 @@ public class TransactionManagerImpl implements TransactionManager {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Calling UnlockAll on " + transactionID);
 		activeTransactions.remove(transactionID);
 		lm.UnlockAll(transactionID);
 		return true;
@@ -318,8 +310,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
 			return rm.addFlight(transactionID, flightNumber, numSeats, flightPrice);
 		} catch (DeadlockException e) {
-			System.out.println("addFlight failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: addFlight failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -333,8 +325,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.WRITE);
 			return rm.deleteFlight(transactionID, flightNumber);
 		} catch (DeadlockException e) {
-			System.out.println("deleteFlight failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: deleteFlight failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -348,8 +340,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
 			return rm.queryFlight(transactionID, flightNumber);
 		} catch (DeadlockException e) {
-			System.out.println("queryFlight failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: queryFlight failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -363,8 +355,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Flight.getKey(flightNumber), LockManager.READ);
 			return rm.queryFlightPrice(transactionID, flightNumber);
 		} catch (DeadlockException e) {
-			System.out.println("queryFlightPrice failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: queryFlightPrice failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -378,8 +370,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
 			return rm.addCars(transactionID, location, numCars, carPrice);
 		} catch (DeadlockException e) {
-			System.out.println("addCars failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: addCars failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -393,8 +385,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.WRITE);
 			return rm.deleteCars(transactionID, location);
 		} catch (DeadlockException e) {
-			System.out.println("deleteCars failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: deleteCars failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -408,8 +400,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
 			return rm.queryCars(transactionID, location);
 		} catch (DeadlockException e) {
-			System.out.println("queryCars failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: queryCars failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -423,8 +415,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Car.getKey(location), LockManager.READ);
 			return rm.queryCarsPrice(transactionID, location);
 		} catch (DeadlockException e) {
-			System.out.println("queryCarsPrice failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: queryCarsPrice failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -438,8 +430,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
 			return rm.addRooms(transactionID, location, numRooms, roomPrice);
 		} catch (DeadlockException e) {
-			System.out.println("addRooms failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: addRooms failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -453,8 +445,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.WRITE);
 			return rm.deleteRooms(transactionID, location);
 		} catch (DeadlockException e) {
-			System.out.println("deleteRooms failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: deleteRooms failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -468,8 +460,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
 			return rm.queryRooms(transactionID, location);
 		} catch (DeadlockException e) {
-			System.out.println("queryRooms failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: queryRooms failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -483,8 +475,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Room.getKey(location), LockManager.READ);
 			return rm.queryRoomsPrice(transactionID, location);
 		} catch (DeadlockException e) {
-			System.out.println("queryRoomPrice failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: queryRoomPrice failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -499,8 +491,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, "newcustomer", LockManager.WRITE);
 			return rm.newCustomer(transactionID);
 		} catch (DeadlockException e) {
-			System.out.println("newCustomer failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: newCustomer failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -515,8 +507,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, "newcustomer", LockManager.WRITE);
 			return rm.newCustomerId(transactionID, customerNumber);
 		} catch (DeadlockException e) {
-			System.out.println("newCustomerID failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: newCustomerID failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -530,8 +522,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
 			return rm.deleteCustomer(transactionID, customerNumber);
 		} catch (DeadlockException e) {
-			System.out.println("deleteCustomer failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: deleteCustomer failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -545,8 +537,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.READ);
 			return rm.queryCustomerInfo(transactionID, customerNumber);
 		} catch (DeadlockException e) {
-			System.out.println("queryCustomerInfo failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: queryCustomerInfo failed, could not aquire read lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -561,8 +553,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
 			return rm.reserveFlight(transactionID, customerNumber, flightNumber);
 		} catch (DeadlockException e) {
-			System.out.println("reserveFlight failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: reserveFlight failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -577,8 +569,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
 			return rm.reserveCar(transactionID, customerNumber, location);
 		} catch (DeadlockException e) {
-			System.out.println("reserveCar failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: reserveCar failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
@@ -594,8 +586,8 @@ public class TransactionManagerImpl implements TransactionManager {
 			lm.Lock(transactionID, Customer.getKey(customerNumber), LockManager.WRITE);
 			return rm.reserveRoom(transactionID, customerNumber, location);
 		} catch (DeadlockException e) {
-			System.out.println("reserveRoom failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
-			System.out.println("Aborting transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: reserveRoom failed, could not aquire write lock for id "+ transactionID + " in transaction "+ transactionID);
+			System.out.println("TransactionManagerImpl: Aborting transaction "+ transactionID);
 			this.abortTransaction(transactionID);
 			throw new AbortedTransactionException();
 		}
