@@ -107,6 +107,7 @@ public class TransactionManagerImpl implements TransactionManager {
 						activeTransactions.hangTransaction(i);
 						transactionsIn2PC.add(i);
 						startupVoteResponsesNeeded.add(i);
+						System.out.println("TransactionManagerImpl: Hung on startup, waiting for vote result");
 					}
 				}else{
 					//Add abort log, dont need to actually abort as state is not altered,
@@ -202,6 +203,8 @@ public class TransactionManagerImpl implements TransactionManager {
 		} catch (IOException e2) {
 			System.out.println("TransactionManagerImpl: Problem renaming prepared state");
 		}
+		//reread state in case this is commit after crash
+		rm.readOldStateFromFile(COMMITED_STATE_PREFIX + transactionID, transactionLocation);
 		logger.log(LogType.COMMITTED, transactionID);
 		System.out.println("TransactionManagerImpl: Committed transaction " + transactionID);
 		//Delete old committed transactions

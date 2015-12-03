@@ -20,11 +20,6 @@ public class TMRequestHandler implements IRequestHandler {
 		if(request.requestType == RequestType.TWOPHASECOMMITVOTERESP){
 			if(tm.getStartupVoteResponsesNeeded().contains(request.transactionID)){
 				tm.getStartupVoteResponsesNeeded().remove(request.transactionID);
-				if(!tm.getStartupVoteResponsesNeeded().isEmpty()){
-					//Send request for an element
-					System.out.println("TMRequestHandler: Requesting vote result, hung on startup");
-					return new ResponseDescriptor(ResponseType.WAITINGFORVOTES, (int) tm.getStartupVoteResponsesNeeded().toArray()[0]);
-				}
 			}
 		}
 		if(!tm.getStartupVoteResponsesNeeded().isEmpty()){
