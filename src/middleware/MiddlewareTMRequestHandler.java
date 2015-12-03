@@ -235,10 +235,15 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 			// handle customer related requests
 			if (mode == ServerMode.CUSTOMER) {
 				if (request.requestType == RequestType.QUERYCUSTOMER){
+					System.out.println("MiddlewareTMRequestHandler: QUERYCUSTOMER received");
 					return this.queryCustomer(request);
 				} else {
+					System.out.println("MiddlewareTMRequestHandler: "+ request.requestType + " received");
+					boolean seenNewCustomer = false;
+					int customerId = 0;
 					if(request.requestType == RequestType.NEWCUSTOMER){
-				        int customerId = Integer.parseInt(String.valueOf(request.transactionID) +
+						seenNewCustomer = true;
+				        customerId = Integer.parseInt(String.valueOf(request.transactionID) +
 				                String.valueOf(Calendar.getInstance().get(Calendar.MILLISECOND)) +
 				                String.valueOf(Math.round(Math.random() * 100 + 1)));
 				        request.requestType = RequestType.NEWCUSTOMERID;
@@ -264,10 +269,14 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 					if(needToResend){
 						return this.handleRequest(request);
 					}else{
+						if(seenNewCustomer){
+							return new ResponseDescriptor(customerId);
+						}
 						return rd;
 					}
 				}
 			} else if (cm.modeIsConnected(mode)) {
+				System.out.println("MiddlewareTMRequestHandler: "+ request.requestType + " received");
 				this.checkAndEnlist(mode, transactionID);
 				ResponseDescriptor rd = cm.getConnection(mode).sendRequest(request); 
 				if (rd.responseType == ResponseType.ABORT || rd.responseType == ResponseType.ERROR) {
@@ -457,6 +466,7 @@ public class MiddlewareTMRequestHandler implements IRequestHandler {
 		String custInfo = "";
 		String startLine = null;
 		String endLine = null;
+		this.checkAndEnlistAll(request.transactionID);
 		for( ServerConnection connection : cm.getAllConnections() ){
 			ResponseDescriptor rd = connection.sendRequest(request);
 			String data = (String) rd.data;
