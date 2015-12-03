@@ -2,14 +2,16 @@
 <html>
   <head>
 	<title>COMP 512</title>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
 	<link rel="stylesheet" type="text/css" href="index.css">
 	<!--<script src="jquery-2.1.4.min.js"></script>-->
 	<script src="jquery-2.1.4.min.js"></script>
 	<script src="index.js"></script>
   </head>
   <body>
-	<form id="requestForm" action="/request" method="post" style="display:block">
-		<div>
+  <div class="container">
+	<form id="requestForm" action="/request" method="post" style="display:block" role="form">
+		<div class="form-group">
 			<select name="method" id="method"> 
 				<option value="starttxn">starttxn</option>
 				<option value="commit">commit</option>
@@ -36,56 +38,57 @@
 				<option value="itinerary">itinerary</option>
 			</select>
 		</div>
-		<div id="parameters">
-			<div class="formDiv" id="transactionID">
+		<div id="parameters" class="form-group">
+			<div class="formDiv" id="transactionID" class="form-group">
+        <label for="transactionID">Transaction ID:</label>
 				<input type="number" name="transactionID" value="transactionID">
-				transactionID:
 			</div>
-			<div class="formDiv" id="flightNumber">
-				<input type="number" name="flightNumber"> 
-				flightNumber:
+			<div class="formDiv" id="flightNumber" class="form-group">
+				<label for="flightNumber">Flight Number:</label>
+        <input type="number" name="flightNumber"> 
 			</div>
-			<div class="formDiv" id="numSeats">
-				<input type="number" name="numSeats"> 
-				numSeats:
+			<div class="formDiv" id="numSeats" class="form-group">
+				<label for="numSeats">Number of seats:</label>
+        <input type="number" name="numSeats"> 
 			</div>
-			<div class="formDiv" id="room">
+			<div class="formDiv" id="room" class="form-group">
+        <label for="room">Room?:</label>
 				<input type="checkbox" name="room" value="true">
-				Room?:
 			</div>
-			<div class="formDiv" id="car">
-				<input type="checkbox" name="car" value="true">
-				Car?:
+			<div class="formDiv" id="car" class="form-group">
+				<label for="car">Car?:</label>
+        <input type="checkbox" name="car" value="true">
 			</div>
-			<div class="formDiv" id="price">
-				<input type="number" name="price"> 
-				Price:
+			<div class="formDiv" id="price" class="form-group">
+				<label for="price">Price:</label>
+        <input type="number" name="price"> 
 			</div>
-			<div class="formDiv" id="numRooms">
-				<input type="number" name="numRooms"> 
-				numRooms:
+			<div class="formDiv" id="numRooms" class="form-group">
+				<label for="numRooms">Number of Rooms:</label>
+        <input type="number" name="numRooms"> 
 			</div>
-			<div class="formDiv" id="numCars">
-				<input type="number" name="numCars"> 
-				numCars:
+			<div class="formDiv" id="numCars" class="form-group">
+				<label for="numCars">Number of Cars:</label>
+        <input type="number" name="numCars"> 
 			</div>
-			<div class="formDiv" id="location">
-				<input type="text" name="location"> 
-				Location:
+			<div class="formDiv" id="location" class="form-group">
+				<label for="location">Location:</label>
+        <input type="text" name="location"> 
 			</div>
-			<div class="formDiv" id="customerNumber">
-				<input type="number" name="customerNumber"> 
-				customerNumber:
+			<div class="formDiv" id="customerNumber" class="form-group">
+				<label for="customerNumber">Customer Number:</label>
+        <input type="number" name="customerNumber"> 
 			</div>
-			<div class="formDiv" id="flightNumbers">
-				<input type="text" name="flightNumbers">
-				flightNumbers (comma separated):
+			<div class="formDiv" id="flightNumbers" class="form-group">
+				<label for="flightNumbers">Flight Numbers (comma separated):</label>
+        <input type="text" name="flightNumbers">
 			</div>
 		</div>
-		<div >
-			<button>Send</button>
+		<div class="form-group">
+			<button type="submit" class="btn btn-default">Send</button>
 		</div>
 	</form>
 	<div id="responseDiv"></div>
+  </div>
   </body>
 </html>
